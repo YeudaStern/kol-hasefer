@@ -1,0 +1,3343 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>קול הספר AI | תמלול תורני ופענוח כתבי יד בבינה מלאכותית</title>
+
+    <!-- Google Fonts: Heebo (Modern Hebrew UI) & Frank Ruhl Libre (Torah Typography) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700;900&family=Heebo:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Custom Design Tokens -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              midnight: {
+                DEFAULT: "#0B132B",
+                900: "#070D1F",
+                800: "#111827",
+                700: "#1C2541",
+              },
+              gold: {
+                DEFAULT: "#C6922E",
+                light: "#E3B85B",
+                amber: "#D97706",
+                soft: "#FDF8EE",
+                border: "#EED9A9",
+              },
+              alabaster: "#FCFBF9",
+            },
+            fontFamily: {
+              sans: ["Heebo", "sans-serif"],
+              torah: ['"Frank Ruhl Libre"', "serif"],
+            },
+            boxShadow: {
+              soft: "0 2px 12px -2px rgba(11, 19, 43, 0.05), 0 1px 4px -1px rgba(11, 19, 43, 0.03)",
+              elevated:
+                "0 20px 40px -15px rgba(11, 19, 43, 0.12), 0 4px 12px -2px rgba(11, 19, 43, 0.04)",
+              "gold-glow": "0 8px 25px -5px rgba(198, 146, 46, 0.35)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background-color: #f8fafc;
+        color: #0f172a;
+        font-family: "Heebo", sans-serif;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .font-torah {
+        font-family: "Frank Ruhl Libre", serif;
+      }
+
+      /* Subtle SaaS mesh background */
+      .hero-mesh {
+        background-color: #fcfbf9;
+        background-image:
+          radial-gradient(
+            at 80% 0%,
+            rgba(198, 146, 46, 0.12) 0px,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 15% 20%,
+            rgba(11, 19, 43, 0.06) 0px,
+            transparent 50%
+          ),
+          linear-gradient(to bottom, rgba(252, 251, 249, 0.2), #f8fafc);
+      }
+
+      .dark-card-mesh {
+        background-color: #0b132b;
+        background-image:
+          radial-gradient(
+            at 90% 10%,
+            rgba(198, 146, 46, 0.18) 0px,
+            transparent 55%
+          ),
+          radial-gradient(
+            at 10% 90%,
+            rgba(56, 189, 248, 0.08) 0px,
+            transparent 50%
+          );
+      }
+
+      /* Frosted glass panels */
+      .glass-nav {
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+
+      /* Subtle dot grid for Bento cards */
+      .dot-grid {
+        background-image: radial-gradient(
+          rgba(15, 23, 42, 0.08) 1px,
+          transparent 1px
+        );
+        background-size: 18px 18px;
+      }
+
+      /* Smooth view transition */
+      .view-section {
+        animation: fadeSlide 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes fadeSlide {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Recording pulse */
+      @keyframes rec-pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+        }
+        70% {
+          box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+      .rec-active {
+        animation: rec-pulse 1.4s infinite;
+      }
+
+      /* Live equalizer bars */
+      .eq-bar {
+        width: 3px;
+        border-radius: 999px;
+        background: #c6922e;
+        animation: eq-bounce 0.9s ease-in-out infinite alternate;
+      }
+      @keyframes eq-bounce {
+        0% {
+          height: 6px;
+          opacity: 0.5;
+        }
+        100% {
+          height: 24px;
+          opacity: 1;
+        }
+      }
+
+      /* Torah Editor Styles */
+      #torah-editor {
+        font-family: "Frank Ruhl Libre", serif;
+        line-height: 1.95;
+        white-space: pre-wrap;
+      }
+      #torah-editor:focus {
+        outline: none;
+      }
+      #torah-editor:empty:before {
+        content: attr(data-placeholder);
+        color: #94a3b8;
+        font-family: "Heebo", sans-serif;
+        font-size: 0.95rem;
+        pointer-events: none;
+      }
+
+      /* Custom subtle scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen flex flex-col selection:bg-gold/20 selection:text-midnight"
+  >
+    <!-- ==================== STICKY FROSTED-GLASS NAVBAR ==================== -->
+    <header class="sticky top-0 z-40 glass-nav border-b border-slate-200/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16 sm:h-[72px] gap-3">
+          <!-- Brand Logo -->
+          <button
+            onclick="switchView('home')"
+            class="flex items-center gap-3 text-right group focus:outline-none shrink-0"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-midnight flex items-center justify-center shadow-sm border border-gold/40 group-hover:scale-105 transition-transform relative overflow-hidden"
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-tr from-gold/25 to-transparent"
+              ></div>
+              <i
+                data-lucide="book-open-text"
+                class="w-5 h-5 text-gold-light relative z-10"
+              ></i>
+            </div>
+            <div>
+              <div
+                class="font-torah text-xl sm:text-2xl font-bold text-midnight leading-none tracking-tight flex items-center gap-1.5"
+              >
+                קול הספר
+                <span
+                  class="font-sans text-[11px] font-extrabold tracking-wider bg-gradient-to-l from-gold to-gold-amber text-white px-2 py-0.5 rounded-md"
+                  >AI</span
+                >
+              </div>
+              <div
+                class="text-[11px] text-slate-500 font-medium mt-0.5 hidden sm:block"
+              >
+                תמלול תורני ופענוח כתבי יד
+              </div>
+            </div>
+          </button>
+
+          <!-- Center Pill Navigation (Desktop) -->
+          <nav
+            class="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80"
+          >
+            <button
+              onclick="switchView('home')"
+              data-nav="home"
+              class="nav-pill px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 bg-white text-midnight shadow-sm"
+            >
+              <i data-lucide="home" class="w-4 h-4"></i>
+              דף הבית
+            </button>
+            <button
+              onclick="switchView('studio')"
+              data-nav="studio"
+              class="nav-pill px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 text-slate-600 hover:text-midnight"
+            >
+              <i data-lucide="sparkles" class="w-4 h-4 text-gold-amber"></i>
+              סטודיו AI
+            </button>
+            <button
+              onclick="switchView('kosher-phone')"
+              data-nav="kosher-phone"
+              class="nav-pill px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 text-slate-600 hover:text-midnight"
+            >
+              <i data-lucide="phone-call" class="w-4 h-4"></i>
+              קו כשר
+            </button>
+            <button
+              onclick="switchView('pricing')"
+              data-nav="pricing"
+              class="nav-pill px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 text-slate-600 hover:text-midnight"
+            >
+              <i data-lucide="credit-card" class="w-4 h-4"></i>
+              מחירון
+            </button>
+          </nav>
+
+          <!-- Right: Live Demo Balance Pill & Mobile Menu -->
+          <div class="flex items-center gap-2">
+            <button
+              onclick="switchView('pricing')"
+              title="יתרת התנסות חיה – לחץ להוספת דקות ודפים"
+              class="flex items-center gap-2 bg-midnight hover:bg-midnight-700 text-white px-3 sm:px-3.5 py-2 rounded-xl border border-gold/40 shadow-sm transition text-xs font-semibold"
+            >
+              <span
+                class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"
+              ></span>
+              <span class="hidden sm:inline text-slate-200">יתרה:</span>
+              <span class="font-bold text-gold-light whitespace-nowrap">
+                <span id="balance-minutes">60</span> דק׳
+              </span>
+              <span class="text-slate-500 hidden sm:inline">|</span>
+              <span
+                class="font-bold text-white whitespace-nowrap hidden sm:inline"
+              >
+                <span id="balance-pages">15</span> דפי כתב יד
+              </span>
+            </button>
+
+            <!-- Mobile Menu Toggle -->
+            <button
+              onclick="toggleMobileMenu()"
+              class="md:hidden p-2.5 rounded-xl bg-white border border-slate-200 text-midnight hover:bg-slate-50 transition"
+              aria-label="תפריט"
+            >
+              <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Navigation -->
+      <div
+        id="mobile-menu"
+        class="hidden md:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-1.5 shadow-xl"
+      >
+        <div
+          class="px-3 py-2 mb-2 rounded-xl bg-gold-soft border border-gold-border text-xs font-semibold text-midnight flex items-center justify-between"
+        >
+          <span>יתרת דמו פעילה:</span>
+          <span
+            ><strong id="mobile-balance-minutes">60</strong> דקות +
+            <strong id="mobile-balance-pages">15</strong> דפי כתב יד</span
+          >
+        </div>
+        <button
+          onclick="
+            switchView('home');
+            toggleMobileMenu();
+          "
+          data-nav-mobile="home"
+          class="mobile-nav-pill w-full text-right px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 bg-slate-100 text-midnight"
+        >
+          <i data-lucide="home" class="w-4 h-4"></i> דף הבית
+        </button>
+        <button
+          onclick="
+            switchView('studio');
+            toggleMobileMenu();
+          "
+          data-nav-mobile="studio"
+          class="mobile-nav-pill w-full text-right px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-700 hover:bg-slate-50"
+        >
+          <i data-lucide="sparkles" class="w-4 h-4 text-gold-amber"></i> סטודיו
+          AI (פעיל)
+        </button>
+        <button
+          onclick="
+            switchView('kosher-phone');
+            toggleMobileMenu();
+          "
+          data-nav-mobile="kosher-phone"
+          class="mobile-nav-pill w-full text-right px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-700 hover:bg-slate-50"
+        >
+          <i data-lucide="phone-call" class="w-4 h-4"></i> קו טלפון כשר
+        </button>
+        <button
+          onclick="
+            switchView('pricing');
+            toggleMobileMenu();
+          "
+          data-nav-mobile="pricing"
+          class="mobile-nav-pill w-full text-right px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-700 hover:bg-slate-50"
+        >
+          <i data-lucide="credit-card" class="w-4 h-4"></i> מחירון מוזל
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="flex-grow">
+      <!-- ================================================================ -->
+      <!-- VIEW 1: HOME (דף הבית)                                           -->
+      <!-- ================================================================ -->
+      <section id="view-home" class="view-section">
+        <!-- Hero Section -->
+        <div class="hero-mesh border-b border-slate-200/70">
+          <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-20 sm:pb-24"
+          >
+            <div class="max-w-4xl mx-auto text-center">
+              <!-- Top Modern Badge -->
+              <div
+                class="inline-flex items-center gap-2 bg-white border border-gold-border/90 shadow-soft px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-midnight mb-7"
+              >
+                <span class="flex h-2 w-2 relative">
+                  <span
+                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"
+                  ></span>
+                  <span
+                    class="relative inline-flex rounded-full h-2 w-2 bg-gold"
+                  ></span>
+                </span>
+                <span
+                  >חדש: תמיכה בהברה אשכנזית, ארמית ופענוח כתבי יד ב-AI
+                  אמיתי</span
+                >
+              </div>
+
+              <!-- Bold Gradient Headline -->
+              <h1
+                class="font-torah text-4xl sm:text-6xl lg:text-[64px] font-bold tracking-tight text-midnight leading-[1.12] mb-6"
+              >
+                תמלול שיעורי תורה ופענוח כתבי יד
+                <span
+                  class="block mt-1 bg-gradient-to-l from-midnight via-gold-amber to-gold bg-clip-text text-transparent"
+                >
+                  בבינה מלאכותית מדויקת
+                </span>
+              </h1>
+
+              <p
+                class="text-slate-600 text-base sm:text-xl leading-relaxed max-w-2xl mx-auto mb-9 font-normal"
+              >
+                פלטפורמה אחת חכמה לרבנים, אברכים, מכונים וכוללים: הקליטו או העלו
+                שיעור, צלמו דף חידושי תורה בכתב יד – וקבלו בתוך שניות טקסט ערוך,
+                מפוסק ומגובה במראי מקומות.
+              </p>
+
+              <!-- Dual CTAs -->
+              <div
+                class="flex flex-col sm:flex-row items-center justify-center gap-3.5"
+              >
+                <button
+                  onclick="switchView('studio')"
+                  class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-midnight hover:bg-midnight-700 text-white font-bold text-base shadow-elevated transition-all flex items-center justify-center gap-2.5 group"
+                >
+                  <i
+                    data-lucide="sparkles"
+                    class="w-5 h-5 text-gold-light group-hover:rotate-12 transition-transform"
+                  ></i>
+                  <span>נסה עכשיו בחינם בסטודיו AI</span>
+                  <i
+                    data-lucide="arrow-left"
+                    class="w-4 h-4 text-slate-300 group-hover:-translate-x-1 transition-transform"
+                  ></i>
+                </button>
+                <button
+                  onclick="switchView('pricing')"
+                  class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-slate-50 text-midnight border border-slate-200/90 shadow-soft font-bold text-base transition-all flex items-center justify-center gap-2"
+                >
+                  <i data-lucide="tags" class="w-4 h-4 text-gold-amber"></i>
+                  <span>צפה במחירון המוזל</span>
+                </button>
+              </div>
+
+              <!-- Quick Live Stat Strip -->
+              <div
+                class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs sm:text-sm text-slate-500 font-medium"
+              >
+                <div class="flex items-center gap-1.5">
+                  <i
+                    data-lucide="check-circle-2"
+                    class="w-4 h-4 text-emerald-600"
+                  ></i>
+                  60 דקות + 15 דפי כתב יד חינם
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <i
+                    data-lucide="check-circle-2"
+                    class="w-4 h-4 text-emerald-600"
+                  ></i>
+                  החל מ-6.3 אג׳ לדקה
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <i
+                    data-lucide="check-circle-2"
+                    class="w-4 h-4 text-emerald-600"
+                  ></i>
+                  מותאם לנטפרי ונדרים פלוס
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento Grid Showcase (4 Core Capabilities) -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+          <div
+            class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10"
+          >
+            <div>
+              <div
+                class="text-xs font-bold uppercase tracking-wider text-gold-amber mb-2"
+              >
+                היכולות של קול הספר AI
+              </div>
+              <h2
+                class="font-torah text-3xl sm:text-4xl font-bold text-midnight"
+              >
+                כל מה שבית המדרש צריך – במקום אחד
+              </h2>
+            </div>
+            <button
+              onclick="switchView('studio')"
+              class="text-sm font-bold text-midnight hover:text-gold-amber transition flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>פתח את הסטודיו האינטראקטיבי</span>
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+            <!-- Bento Card 1: Audio Transcription (7 cols) -->
+            <div
+              onclick="
+                switchView('studio');
+                switchStudioTab('audio');
+              "
+              class="md:col-span-7 bg-white rounded-3xl border border-slate-200/80 shadow-soft hover:shadow-elevated hover:border-gold-border transition-all p-7 cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+            >
+              <div
+                class="dot-grid absolute inset-0 opacity-40 pointer-events-none"
+              ></div>
+              <div class="relative z-10">
+                <div class="flex items-center justify-between mb-5">
+                  <div
+                    class="w-12 h-12 rounded-2xl bg-midnight text-gold-light flex items-center justify-center shadow-sm"
+                  >
+                    <i data-lucide="mic" class="w-6 h-6"></i>
+                  </div>
+                  <span
+                    class="text-xs font-bold px-3 py-1 rounded-full bg-gold-soft text-gold-amber border border-gold-border"
+                    >פעיל בדמו</span
+                  >
+                </div>
+                <h3
+                  class="font-torah text-2xl font-bold text-midnight mb-2 group-hover:text-gold-amber transition"
+                >
+                  תמלול שיעורים והקלטות ברמה תורנית
+                </h3>
+                <p class="text-slate-600 text-sm leading-relaxed max-w-xl">
+                  מנוע AI המאומן על לשון הש"ס והפוסקים. תמיכה מלאה בהברה
+                  אשכנזית, חסידית וספרדית, זיהוי ארמית ויידיש, פיסוק מדויק
+                  והפרדת דוברים בחברותא.
+                </p>
+              </div>
+              <!-- Mini Visual Preview -->
+              <div
+                class="relative z-10 mt-6 bg-alabaster border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between gap-4"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-9 h-9 rounded-full bg-midnight text-white flex items-center justify-center shrink-0"
+                  >
+                    <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-midnight">
+                      שיעור בבא מציעא דף כא.mp3
+                    </div>
+                    <div class="text-[11px] text-slate-500">
+                      ארמית + אשכנזית • פוענח ב-99.2% דיוק
+                    </div>
+                  </div>
+                </div>
+                <div class="hidden sm:flex items-end gap-1 h-6">
+                  <span class="eq-bar" style="animation-delay: 0s"></span>
+                  <span class="eq-bar" style="animation-delay: 0.2s"></span>
+                  <span class="eq-bar" style="animation-delay: 0.4s"></span>
+                  <span class="eq-bar" style="animation-delay: 0.1s"></span>
+                  <span class="eq-bar" style="animation-delay: 0.3s"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bento Card 2: Handwriting OCR (5 cols) -->
+            <div
+              onclick="
+                switchView('studio');
+                switchStudioTab('ocr');
+              "
+              class="md:col-span-5 dark-card-mesh text-white rounded-3xl border border-midnight-700 shadow-elevated hover:border-gold/60 transition-all p-7 cursor-pointer group flex flex-col justify-between"
+            >
+              <div>
+                <div class="flex items-center justify-between mb-5">
+                  <div
+                    class="w-12 h-12 rounded-2xl bg-white/10 text-gold-light border border-white/15 flex items-center justify-center"
+                  >
+                    <i data-lucide="scan-text" class="w-6 h-6"></i>
+                  </div>
+                  <span
+                    class="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-gold-light border border-gold/40"
+                    >פעיל בדמו</span
+                  >
+                </div>
+                <h3
+                  class="font-torah text-2xl font-bold text-white mb-2 group-hover:text-gold-light transition"
+                >
+                  פענוח כתבי יד וכתבי קודש (OCR)
+                </h3>
+                <p class="text-slate-300 text-sm leading-relaxed">
+                  צלמו דפי חידושי תורה בכתב יד, מחברות ישיבה, דפים סרוקים או כתב
+                  רש"י – וקבלו טקסט דיגיטלי חי, נקי ומוכן לעריכה ב-Word.
+                </p>
+              </div>
+              <div
+                class="mt-6 bg-white/5 border border-white/10 rounded-2xl p-3.5 text-xs text-slate-300 flex items-center justify-between"
+              >
+                <span class="font-torah text-gold-light text-sm"
+                  >"בעניין ייאוש שלא מדעת..."</span
+                >
+                <span
+                  class="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md font-bold"
+                  >פוענח</span
+                >
+              </div>
+            </div>
+
+            <!-- Bento Card 3: Rabbinic AI Editing (5 cols) -->
+            <div
+              onclick="switchView('studio')"
+              class="md:col-span-5 bg-white rounded-3xl border border-slate-200/80 shadow-soft hover:shadow-elevated hover:border-gold-border transition-all p-7 cursor-pointer group flex flex-col justify-between"
+            >
+              <div>
+                <div
+                  class="w-12 h-12 rounded-2xl bg-gold-soft text-gold-amber border border-gold-border flex items-center justify-center mb-5"
+                >
+                  <i data-lucide="wand-2" class="w-6 h-6"></i>
+                </div>
+                <h3
+                  class="font-torah text-2xl font-bold text-midnight mb-2 group-hover:text-gold-amber transition"
+                >
+                  עריכה תורנית אוטומטית בלחיצה
+                </h3>
+                <p class="text-slate-600 text-sm leading-relaxed">
+                  איתור והוספת מראי מקומות (ש"ס, רמב"ם, שו"ע), פתיחת ראשי תיבות,
+                  עיבוד לשוני לספר תורני או קיצור לעלון שבת מרתק.
+                </p>
+              </div>
+              <div class="mt-5 flex flex-wrap gap-1.5">
+                <span
+                  class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-midnight"
+                  >איתור מראי מקומות</span
+                >
+                <span
+                  class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-midnight"
+                  >פתיחת ראשי תיבות</span
+                >
+                <span
+                  class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-gold-soft text-gold-amber"
+                  >עימוד לעלון שבת</span
+                >
+              </div>
+            </div>
+
+            <!-- Bento Card 4: Kosher Phone Line (7 cols) -->
+            <div
+              onclick="switchView('kosher-phone')"
+              class="md:col-span-7 bg-white rounded-3xl border border-slate-200/80 shadow-soft hover:shadow-elevated hover:border-gold-border transition-all p-7 cursor-pointer group flex flex-col justify-between"
+            >
+              <div
+                class="flex flex-col sm:flex-row sm:items-start justify-between gap-4"
+              >
+                <div>
+                  <div
+                    class="w-12 h-12 rounded-2xl bg-slate-100 text-midnight border border-slate-200 flex items-center justify-center mb-5"
+                  >
+                    <i
+                      data-lucide="phone-forwarded"
+                      class="w-6 h-6 text-midnight"
+                    ></i>
+                  </div>
+                  <h3
+                    class="font-torah text-2xl font-bold text-midnight mb-2 group-hover:text-gold-amber transition"
+                  >
+                    חיבור ישיר לקו טלפון כשר
+                  </h3>
+                  <p class="text-slate-600 text-sm leading-relaxed max-w-lg">
+                    בלי סמארטפון ובלי להעביר קבצים. מחייגים מכל טלפון כשר לקו
+                    האישי, מקליטים את השיעור או הדרשה – והקובץ הערוך נוחת
+                    אוטומטית במייל ובסטודיו.
+                  </p>
+                </div>
+                <div
+                  class="bg-alabaster border border-slate-200 rounded-2xl p-4 text-center shrink-0 min-w-[165px]"
+                >
+                  <div class="text-[11px] text-slate-500 font-semibold">
+                    מספר הדגמה כשר
+                  </div>
+                  <div
+                    class="text-lg font-mono font-extrabold text-midnight mt-0.5"
+                    dir="ltr"
+                  >
+                    02-555-0613
+                  </div>
+                  <div class="text-[10px] text-emerald-600 font-bold mt-1">
+                    זמין 24/6
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trust & Comparison Strip -->
+          <div
+            class="mt-12 bg-white rounded-3xl border border-slate-200/80 shadow-soft p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            <div class="flex items-start gap-3.5">
+              <div
+                class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0"
+              >
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="font-bold text-midnight text-sm">
+                  עיצוב נקי מותאם לנטפרי
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  ללא תמונות בעייתיות, חוויית שימוש מכובדת ונקייה לציבור החרדי.
+                </div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3.5">
+              <div
+                class="w-10 h-10 rounded-xl bg-gold-soft text-gold-amber flex items-center justify-center shrink-0"
+              >
+                <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="font-bold text-midnight text-sm">
+                  זול משמעותית מהמתחרים
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  חבילות הוגנות החל מ-29 ₪ עם דקות תמלול וגם פענוח כתבי יד.
+                </div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3.5">
+              <div
+                class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0"
+              >
+                <i data-lucide="landmark" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="font-bold text-midnight text-sm">
+                  תמיכה בנדרים פלוס וקהילות
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  אפשרות תשלום נוחה למוסדות, כוללים ופרטיים כולל חשבונית מס.
+                </div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3.5">
+              <div
+                class="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0"
+              >
+                <i data-lucide="file-check-2" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="font-bold text-midnight text-sm">
+                  ייצוא ישיר ל-Word (RTL)
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  הורדה מיידית של קובץ Word מיושר לימין ומוכן לעימוד ולהדפסה.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- VIEW 2: INTERACTIVE AI STUDIO (סטודיו AI - REAL GEMINI API)      -->
+      <!-- ================================================================ -->
+      <section
+        id="view-studio"
+        class="view-section hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-9"
+      >
+        <!-- Studio Top Bar -->
+        <div
+          class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+        >
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-torah text-3xl font-bold text-midnight">
+                סטודיו AI תורני
+              </h1>
+              <span
+                class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                מנוע AI אמיתי מחובר
+              </span>
+            </div>
+            <p class="text-sm text-slate-500 mt-1">
+              הקליטו שמע קצר, העלו קובץ או צלמו דף בכתב יד – ותראו את התוצאה
+              בזמן אמת.
+            </p>
+          </div>
+
+          <!-- History Drawer Toggle -->
+          <div class="flex items-center gap-2">
+            <button
+              onclick="toggleHistoryDrawer()"
+              class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-midnight text-sm font-semibold shadow-soft transition flex items-center gap-2"
+            >
+              <i data-lucide="history" class="w-4 h-4 text-gold-amber"></i>
+              <span>היסטוריה שמורה</span>
+              <span
+                id="history-badge"
+                class="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-md"
+                >0</span
+              >
+            </button>
+          </div>
+        </div>
+
+        <!-- Main 2-Column Workspace (RTL Split: Right=Input Panel, Left=Smart Torah Editor) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- COLUMN 1: INPUT PANEL (5 cols) -->
+          <div
+            class="lg:col-span-5 bg-white rounded-3xl border border-slate-200/80 shadow-soft p-5 sm:p-6 space-y-5"
+          >
+            <!-- Mode Switcher Tabs -->
+            <div
+              class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1.5 rounded-2xl"
+            >
+              <button
+                id="tab-btn-audio"
+                onclick="switchStudioTab('audio')"
+                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-white text-midnight shadow-sm transition flex items-center justify-center gap-2"
+              >
+                <i data-lucide="mic" class="w-4 h-4 text-gold-amber"></i>
+                <span>תמלול שמע והקלטה</span>
+              </button>
+              <button
+                id="tab-btn-ocr"
+                onclick="switchStudioTab('ocr')"
+                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:text-midnight transition flex items-center justify-center gap-2"
+              >
+                <i data-lucide="scan-text" class="w-4 h-4"></i>
+                <span>פענוח כתב יד (OCR)</span>
+              </button>
+            </div>
+
+            <!-- ============ TAB A: AUDIO TRANSCRIPTION ============ -->
+            <div id="studio-panel-audio" class="space-y-5">
+              <!-- Live Microphone Recorder Box -->
+              <div
+                class="bg-alabaster border border-slate-200/90 rounded-2xl p-5 text-center space-y-3"
+              >
+                <div class="flex items-center justify-center gap-3">
+                  <button
+                    id="record-toggle-btn"
+                    onclick="toggleAudioRecording()"
+                    class="w-14 h-14 rounded-2xl bg-midnight hover:bg-midnight-700 text-white flex items-center justify-center shadow-md transition-all"
+                  >
+                    <i
+                      id="record-btn-icon"
+                      data-lucide="mic"
+                      class="w-6 h-6 text-gold-light"
+                    ></i>
+                  </button>
+                </div>
+                <div>
+                  <div
+                    id="record-status-label"
+                    class="font-bold text-midnight text-sm"
+                  >
+                    הקלטה חיה מהמיקרופון (5–20 שניות)
+                  </div>
+                  <div class="flex items-center justify-center gap-3 mt-1">
+                    <span
+                      id="record-timer"
+                      class="font-mono text-xs font-bold text-slate-500"
+                      >00:00</span
+                    >
+                    <div id="live-waveform" class="hidden items-end gap-1 h-5">
+                      <span class="eq-bar" style="animation-delay: 0s"></span>
+                      <span
+                        class="eq-bar"
+                        style="animation-delay: 0.15s"
+                      ></span>
+                      <span class="eq-bar" style="animation-delay: 0.3s"></span>
+                      <span class="eq-bar" style="animation-delay: 0.1s"></span>
+                      <span
+                        class="eq-bar"
+                        style="animation-delay: 0.25s"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- File Upload Dropzone -->
+              <div
+                id="audio-dropzone"
+                onclick="document.getElementById('audio-file-input').click()"
+                class="border-2 border-dashed border-slate-200 hover:border-gold rounded-2xl p-5 text-center cursor-pointer transition bg-slate-50/60 hover:bg-gold-soft/30"
+              >
+                <input
+                  type="file"
+                  id="audio-file-input"
+                  accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,audio/webm,audio/ogg,audio/*"
+                  class="hidden"
+                  onchange="handleAudioFileInput(event)"
+                />
+                <div
+                  class="w-10 h-10 rounded-xl bg-white border border-slate-200 text-gold-amber mx-auto flex items-center justify-center mb-2.5 shadow-sm"
+                >
+                  <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                </div>
+                <div class="text-sm font-bold text-midnight">
+                  גרור קובץ שמע או לחץ להעלאה
+                </div>
+                <div class="text-xs text-slate-500 mt-1">
+                  MP3, WAV, M4A, WEBM, OGG • מומלץ עד 5MB בדמו
+                </div>
+              </div>
+
+              <!-- Selected Audio Preview Player -->
+              <div
+                id="audio-preview-card"
+                class="hidden bg-midnight text-white rounded-2xl p-4 space-y-3"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div
+                      class="w-9 h-9 rounded-xl bg-gold/20 text-gold-light flex items-center justify-center shrink-0"
+                    >
+                      <i data-lucide="file-audio" class="w-4 h-4"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <div
+                        id="audio-file-name"
+                        class="text-xs font-bold truncate"
+                      >
+                        הקלטה.webm
+                      </div>
+                      <div
+                        id="audio-file-meta"
+                        class="text-[11px] text-slate-300"
+                      >
+                        מוכן לתמלול AI
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onclick="clearAudioSelection()"
+                    class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition"
+                    title="הסר"
+                  >
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                  </button>
+                </div>
+                <audio
+                  id="audio-player"
+                  controls
+                  class="w-full h-9 rounded-lg"
+                ></audio>
+              </div>
+
+              <!-- Smart Torah Audio Settings -->
+              <div class="space-y-3 pt-1">
+                <div
+                  class="text-xs font-bold text-slate-500 flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="sliders-horizontal"
+                    class="w-3.5 h-3.5 text-gold-amber"
+                  ></i>
+                  הגדרות פענוח תורני
+                </div>
+                <div>
+                  <label
+                    class="block text-[11px] font-semibold text-slate-500 mb-1.5"
+                    >סגנון הברה</label
+                  >
+                  <div
+                    class="grid grid-cols-4 gap-1.5"
+                    id="pronunciation-group"
+                  >
+                    <button
+                      type="button"
+                      onclick="selectPronunciation('רגילה', this)"
+                      class="pron-pill py-1.5 px-2 rounded-xl text-xs font-bold bg-midnight text-white transition"
+                    >
+                      רגילה
+                    </button>
+                    <button
+                      type="button"
+                      onclick="selectPronunciation('אשכנזית', this)"
+                      class="pron-pill py-1.5 px-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                    >
+                      אשכנזית
+                    </button>
+                    <button
+                      type="button"
+                      onclick="selectPronunciation('ספרדית', this)"
+                      class="pron-pill py-1.5 px-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                    >
+                      ספרדית
+                    </button>
+                    <button
+                      type="button"
+                      onclick="selectPronunciation('חסידית', this)"
+                      class="pron-pill py-1.5 px-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                    >
+                      חסידית
+                    </button>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-2 pt-1">
+                  <label
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-midnight cursor-pointer hover:border-gold"
+                  >
+                    <input
+                      type="checkbox"
+                      id="opt-aramaic"
+                      checked
+                      class="accent-midnight rounded"
+                    />
+                    <span>זיהוי ארמית ויידיש</span>
+                  </label>
+                  <label
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-midnight cursor-pointer hover:border-gold"
+                  >
+                    <input
+                      type="checkbox"
+                      id="opt-punctuation"
+                      checked
+                      class="accent-midnight rounded"
+                    />
+                    <span>פיסוק וניקוד חכם</span>
+                  </label>
+                  <label
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-midnight cursor-pointer hover:border-gold"
+                  >
+                    <input
+                      type="checkbox"
+                      id="opt-diarization"
+                      class="accent-midnight rounded"
+                    />
+                    <span>הפרדת דוברים</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Primary Audio CTA -->
+              <button
+                id="btn-run-audio-ai"
+                onclick="runRealAudioTranscription()"
+                class="w-full py-3.5 rounded-2xl bg-gradient-to-l from-midnight to-midnight-700 hover:opacity-95 text-white font-bold text-sm sm:text-base shadow-elevated transition flex items-center justify-center gap-2"
+              >
+                <i data-lucide="sparkles" class="w-5 h-5 text-gold-light"></i>
+                <span>תמלל עכשיו עם AI</span>
+              </button>
+
+              <!-- Quick One-Click Sample Demos -->
+              <div class="border-t border-slate-100 pt-4">
+                <div class="text-[11px] font-bold text-slate-400 mb-2">
+                  אין לך קובץ כרגע? נסה הקלטות דוגמה בלחיצה:
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    onclick="loadSampleAudioTranscript('daf-yomi')"
+                    class="text-right p-2.5 rounded-xl bg-gold-soft/70 hover:bg-gold-soft border border-gold-border/80 transition flex items-center gap-2"
+                  >
+                    <i
+                      data-lucide="zap"
+                      class="w-3.5 h-3.5 text-gold-amber shrink-0"
+                    ></i>
+                    <span class="text-xs font-bold text-midnight truncate"
+                      >דף היומי (ב"מ כא)</span
+                    >
+                  </button>
+                  <button
+                    onclick="loadSampleAudioTranscript('parasha')"
+                    class="text-right p-2.5 rounded-xl bg-gold-soft/70 hover:bg-gold-soft border border-gold-border/80 transition flex items-center gap-2"
+                  >
+                    <i
+                      data-lucide="zap"
+                      class="w-3.5 h-3.5 text-gold-amber shrink-0"
+                    ></i>
+                    <span class="text-xs font-bold text-midnight truncate"
+                      >דרשה לפרשת השבוע</span
+                    >
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============ TAB B: HANDWRITING OCR ============ -->
+            <div id="studio-panel-ocr" class="hidden space-y-5">
+              <!-- Image Upload Dropzone & Mobile Camera -->
+              <div
+                id="ocr-dropzone"
+                onclick="document.getElementById('ocr-file-input').click()"
+                class="border-2 border-dashed border-slate-200 hover:border-gold rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/60 hover:bg-gold-soft/30"
+              >
+                <input
+                  type="file"
+                  id="ocr-file-input"
+                  accept="image/jpeg,image/png,image/webp,image/*"
+                  class="hidden"
+                  onchange="handleOcrImageInput(event)"
+                />
+                <input
+                  type="file"
+                  id="ocr-camera-input"
+                  accept="image/*"
+                  capture="environment"
+                  class="hidden"
+                  onchange="handleOcrImageInput(event)"
+                />
+                <div
+                  class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-gold-amber mx-auto flex items-center justify-center mb-3 shadow-sm"
+                >
+                  <i data-lucide="image-plus" class="w-5 h-5"></i>
+                </div>
+                <div class="text-sm font-bold text-midnight">
+                  העלה תמונת כתב יד או דף סרוק
+                </div>
+                <div class="text-xs text-slate-500 mt-1">
+                  JPG, PNG, WEBP • חידושי תורה, מחברות או דפוס ישן
+                </div>
+                <div
+                  class="mt-3 flex items-center justify-center gap-2"
+                  onclick="event.stopPropagation()"
+                >
+                  <button
+                    type="button"
+                    onclick="
+                      document.getElementById('ocr-camera-input').click()
+                    "
+                    class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-gold text-xs font-bold text-midnight inline-flex items-center gap-1.5 shadow-sm transition"
+                  >
+                    <i
+                      data-lucide="camera"
+                      class="w-3.5 h-3.5 text-gold-amber"
+                    ></i>
+                    צלם מהמצלמה
+                  </button>
+                  <button
+                    type="button"
+                    onclick="generateSampleHandwritingImage()"
+                    class="px-3 py-1.5 rounded-xl bg-gold-soft hover:bg-gold/20 border border-gold-border text-xs font-bold text-midnight inline-flex items-center gap-1.5 transition"
+                  >
+                    <i
+                      data-lucide="wand-2"
+                      class="w-3.5 h-3.5 text-gold-amber"
+                    ></i>
+                    טען כתב יד לדוגמה
+                  </button>
+                </div>
+              </div>
+
+              <!-- Uploaded / Sample Image Preview -->
+              <div
+                id="ocr-preview-card"
+                class="hidden rounded-2xl border border-slate-200 overflow-hidden bg-alabaster relative"
+              >
+                <div
+                  class="flex items-center justify-between px-3.5 py-2 bg-midnight text-white text-xs"
+                >
+                  <span id="ocr-file-name" class="font-bold truncate"
+                    >תמונת כתב יד</span
+                  >
+                  <button
+                    onclick="clearOcrSelection()"
+                    class="p-1 rounded hover:bg-white/10 text-slate-300 hover:text-white transition"
+                  >
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+                <div class="p-3 flex justify-center bg-slate-100/70">
+                  <img
+                    id="ocr-preview-img"
+                    src=""
+                    alt="תצוגה מקדימה של כתב יד"
+                    class="max-h-56 rounded-xl shadow-sm object-contain border border-slate-200 bg-white"
+                  />
+                </div>
+              </div>
+
+              <!-- OCR Options -->
+              <div class="space-y-2.5">
+                <div
+                  class="text-xs font-bold text-slate-500 flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="sliders-horizontal"
+                    class="w-3.5 h-3.5 text-gold-amber"
+                  ></i>
+                  הגדרות פענוח כתב יד (OCR)
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label
+                    class="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-midnight cursor-pointer hover:border-gold"
+                  >
+                    <input
+                      type="checkbox"
+                      id="opt-ocr-abbr"
+                      checked
+                      class="accent-midnight rounded"
+                    />
+                    <span
+                      >פתיחת ראשי תיבות אוטומטית (עכ"ל, זצ"ל, ודו"ק, ב"מ)</span
+                    >
+                  </label>
+                  <label
+                    class="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-midnight cursor-pointer hover:border-gold"
+                  >
+                    <input
+                      type="checkbox"
+                      id="opt-ocr-typos"
+                      checked
+                      class="accent-midnight rounded"
+                    />
+                    <span>תיקון שגיאות קולמוס ופיסוק שוטף</span>
+                  </label>
+                  <label
+                    class="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-midnight cursor-pointer hover:border-gold"
+                  >
+                    <input
+                      type="checkbox"
+                      id="opt-ocr-rashi"
+                      class="accent-midnight rounded"
+                    />
+                    <span>זיהוי כתב רש"י / דפוס ישן</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Primary OCR CTA -->
+              <button
+                id="btn-run-ocr-ai"
+                onclick="runRealHandwritingOcr()"
+                class="w-full py-3.5 rounded-2xl bg-gradient-to-l from-midnight to-midnight-700 hover:opacity-95 text-white font-bold text-sm sm:text-base shadow-elevated transition flex items-center justify-center gap-2"
+              >
+                <i data-lucide="scan-line" class="w-5 h-5 text-gold-light"></i>
+                <span>פענח כתב יד עם AI</span>
+              </button>
+            </div>
+
+            <!-- Shared Animated Progress Indicator -->
+            <div
+              id="ai-progress-box"
+              class="hidden bg-alabaster border border-gold-border rounded-2xl p-4 space-y-3"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-8 h-8 rounded-xl bg-midnight text-gold-light flex items-center justify-center shrink-0"
+                >
+                  <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div
+                    id="ai-progress-title"
+                    class="text-xs font-bold text-midnight"
+                  >
+                    מעבד באמצעות קול הספר AI...
+                  </div>
+                  <div
+                    id="ai-progress-step"
+                    class="text-[11px] text-gold-amber font-medium mt-0.5"
+                  >
+                    שולח למנוע הפענוח התורני...
+                  </div>
+                </div>
+              </div>
+              <div
+                class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden"
+              >
+                <div
+                  id="ai-progress-bar"
+                  class="bg-gradient-to-l from-gold to-midnight h-1.5 rounded-full transition-all duration-500"
+                  style="width: 20%"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMN 2: SMART TORAH EDITOR & POST-PROCESSING (7 cols) -->
+          <div
+            class="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 shadow-soft flex flex-col overflow-hidden min-h-[600px]"
+          >
+            <!-- Editor Header Bar -->
+            <div
+              class="px-5 py-4 border-b border-slate-200/80 bg-alabaster flex flex-wrap items-center justify-between gap-3"
+            >
+              <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                <i
+                  data-lucide="file-text"
+                  class="w-5 h-5 text-gold-amber shrink-0"
+                ></i>
+                <input
+                  type="text"
+                  id="editor-doc-title"
+                  value="מסמך תורני חדש"
+                  class="font-torah text-lg sm:text-xl font-bold text-midnight bg-transparent border-b border-transparent hover:border-slate-300 focus:border-gold outline-none w-full max-w-xs transition"
+                  placeholder="כותרת המסמך..."
+                />
+              </div>
+
+              <!-- Font Size & Word Counter Controls -->
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <div
+                  class="flex items-center bg-white border border-slate-200 rounded-xl p-0.5"
+                >
+                  <button
+                    onclick="changeEditorFontSize(-2)"
+                    class="px-2 py-1 hover:bg-slate-100 rounded-lg font-bold text-midnight"
+                    title="הקטן גופן"
+                  >
+                    א-
+                  </button>
+                  <button
+                    onclick="changeEditorFontSize(2)"
+                    class="px-2 py-1 hover:bg-slate-100 rounded-lg font-bold text-midnight"
+                    title="הגדל גופן"
+                  >
+                    א+
+                  </button>
+                </div>
+                <span
+                  id="editor-stats"
+                  class="px-2.5 py-1 rounded-xl bg-white border border-slate-200 font-medium whitespace-nowrap"
+                  >0 מילים • 0 תווים</span
+                >
+              </div>
+            </div>
+
+            <!-- AI Transformation Toolbar (REAL Gemini API) -->
+            <div class="px-5 py-3 border-b border-slate-200/70 bg-slate-50/70">
+              <div
+                class="text-[11px] font-bold text-slate-400 mb-2 flex items-center gap-1.5"
+              >
+                <i data-lucide="wand-2" class="w-3.5 h-3.5 text-gold-amber"></i>
+                <span
+                  >עריכה ושדרוג AI בזמן אמת (לחיצה מעבדת את הטקסט שבעורך):</span
+                >
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  onclick="runAiTextTransform('sefer')"
+                  class="ai-tool-btn px-3 py-1.5 rounded-xl bg-white hover:bg-midnight hover:text-white border border-slate-200 text-xs font-bold text-midnight shadow-sm transition flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="book-open"
+                    class="w-3.5 h-3.5 text-gold-amber"
+                  ></i>
+                  ערוך לספר תורני
+                </button>
+                <button
+                  onclick="runAiTextTransform('alon')"
+                  class="ai-tool-btn px-3 py-1.5 rounded-xl bg-white hover:bg-midnight hover:text-white border border-slate-200 text-xs font-bold text-midnight shadow-sm transition flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="newspaper"
+                    class="w-3.5 h-3.5 text-gold-amber"
+                  ></i>
+                  עבד לעלון שבת
+                </button>
+                <button
+                  onclick="runAiTextTransform('citations')"
+                  class="ai-tool-btn px-3 py-1.5 rounded-xl bg-white hover:bg-midnight hover:text-white border border-slate-200 text-xs font-bold text-midnight shadow-sm transition flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="book-marked"
+                    class="w-3.5 h-3.5 text-gold-amber"
+                  ></i>
+                  אתר מראי מקומות
+                </button>
+                <button
+                  onclick="runAiTextTransform('expand-abbr')"
+                  class="ai-tool-btn px-3 py-1.5 rounded-xl bg-white hover:bg-midnight hover:text-white border border-slate-200 text-xs font-bold text-midnight shadow-sm transition flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="spell-check"
+                    class="w-3.5 h-3.5 text-gold-amber"
+                  ></i>
+                  פתח ראשי תיבות
+                </button>
+                <button
+                  onclick="runAiTextTransform('summary')"
+                  class="ai-tool-btn px-3 py-1.5 rounded-xl bg-white hover:bg-midnight hover:text-white border border-slate-200 text-xs font-bold text-midnight shadow-sm transition flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="list-checks"
+                    class="w-3.5 h-3.5 text-gold-amber"
+                  ></i>
+                  סכם לנקודות
+                </button>
+              </div>
+            </div>
+
+            <!-- Main Document Editable Canvas -->
+            <div class="relative flex-grow flex flex-col">
+              <!-- Editor AI Loading Overlay -->
+              <div
+                id="editor-loading-overlay"
+                class="hidden absolute inset-0 bg-white/80 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center gap-3 p-6 text-center"
+              >
+                <div
+                  class="w-12 h-12 rounded-2xl bg-midnight text-gold-light flex items-center justify-center shadow-lg"
+                >
+                  <i data-lucide="sparkles" class="w-6 h-6 animate-pulse"></i>
+                </div>
+                <div
+                  id="editor-loading-msg"
+                  class="font-bold text-midnight text-sm"
+                >
+                  עורך את הטקסט בעזרת בינה מלאכותית...
+                </div>
+              </div>
+
+              <div
+                id="torah-editor"
+                contenteditable="true"
+                dir="rtl"
+                style="font-size: 19px"
+                oninput="updateEditorStats()"
+                data-placeholder="התמלול או פענוח כתב היד יופיעו כאן מיד. ניתן גם להדביק או להקליד כאן כל קטע תורני ולהשתמש בכפתורי העריכה החכמה למעלה..."
+                class="flex-grow p-6 sm:p-8 text-slate-800 min-h-[360px] max-h-[560px] overflow-y-auto"
+              ></div>
+            </div>
+
+            <!-- Bottom Export & Save Bar -->
+            <div
+              class="px-5 py-3.5 border-t border-slate-200/80 bg-alabaster flex flex-wrap items-center justify-between gap-2.5"
+            >
+              <div class="flex items-center gap-2">
+                <button
+                  onclick="saveCurrentToHistory()"
+                  class="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-gold text-xs font-bold text-midnight transition flex items-center gap-1.5"
+                >
+                  <i data-lucide="save" class="w-3.5 h-3.5 text-gold-amber"></i>
+                  שמור להיסטוריה
+                </button>
+                <button
+                  onclick="clearEditor()"
+                  class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
+                >
+                  נקה
+                </button>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  onclick="copyEditorText()"
+                  class="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold text-midnight transition flex items-center gap-1.5"
+                >
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  העתק טקסט
+                </button>
+                <button
+                  onclick="exportEditorToTxt()"
+                  class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-midnight transition flex items-center gap-1.5"
+                >
+                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                  הורד TXT
+                </button>
+                <button
+                  onclick="exportEditorToWord()"
+                  class="px-4 py-2 rounded-xl bg-midnight hover:bg-midnight-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="file-down"
+                    class="w-3.5 h-3.5 text-gold-light"
+                  ></i>
+                  הורד כ-Word (.doc)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- VIEW 3: KOSHER PHONE LINE (קו טלפון כשר - Demo Simulator)         -->
+      <!-- ================================================================ -->
+      <section
+        id="view-kosher-phone"
+        class="view-section hidden max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14"
+      >
+        <!-- Hero Card -->
+        <div
+          class="dark-card-mesh text-white rounded-3xl p-8 sm:p-10 border border-midnight-700 shadow-elevated mb-8"
+        >
+          <div
+            class="flex flex-col md:flex-row items-center justify-between gap-6"
+          >
+            <div class="text-center md:text-right">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold/20 border border-gold/40 text-gold-light text-xs font-bold mb-3"
+              >
+                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                תואם לכל המכשירים הכשרים • הדמיית קו
+              </span>
+              <h1 class="font-torah text-3xl sm:text-4xl font-bold mb-2">
+                קו התמלול הכשר של קול הספר AI
+              </h1>
+              <p
+                class="text-slate-300 text-sm sm:text-base max-w-xl leading-relaxed"
+              >
+                ללא צורך בסמארטפון או אפליקציה. מקליטים את השיעור או חידוש התורה
+                בשיחת טלפון פשוטה – והתמלול הערוך מגיע ישירות למייל ולסטודיו.
+              </p>
+            </div>
+            <div
+              class="bg-white/10 backdrop-blur-md border border-gold/40 rounded-2xl p-5 text-center shrink-0 min-w-[220px]"
+            >
+              <div class="text-xs text-gold-light font-semibold">
+                מספר הקו (הדגמה)
+              </div>
+              <div
+                class="text-2xl sm:text-3xl font-mono font-extrabold tracking-wider text-white mt-1"
+                dir="ltr"
+              >
+                02-555-0613
+              </div>
+              <div class="text-[11px] text-slate-300 mt-1">
+                זמין 24/6 (למעט שבת ומועד)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-Step Modern Visual Flow -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div
+            class="bg-white rounded-2xl border border-slate-200/80 shadow-soft p-6"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-midnight text-gold-light font-extrabold flex items-center justify-center mb-4"
+            >
+              1
+            </div>
+            <h3 class="font-bold text-midnight text-base mb-1.5">
+              מחייגים למספר הכשר
+            </h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              המערכת מזהה אוטומטית את המספר הכשר שלך או מבקשת קוד PIN אישי בן 4
+              ספרות.
+            </p>
+          </div>
+          <div
+            class="bg-white rounded-2xl border border-slate-200/80 shadow-soft p-6"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-midnight text-gold-light font-extrabold flex items-center justify-center mb-4"
+            >
+              2
+            </div>
+            <h3 class="font-bold text-midnight text-base mb-1.5">
+              מקליטים את השיעור או הדרשה
+            </h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              מניחים את הטלפון ליד המגיד שיעור או מכתיבים חידוש תורה. בסיום
+              מקישים # לסיום.
+            </p>
+          </div>
+          <div
+            class="bg-white rounded-2xl border border-slate-200/80 shadow-soft p-6"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-midnight text-gold-light font-extrabold flex items-center justify-center mb-4"
+            >
+              3
+            </div>
+            <h3 class="font-bold text-midnight text-base mb-1.5">
+              מקבלים תמלול ערוך למייל ולאתר
+            </h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              תוך דקות קובץ Word מוגה ומסודר נשלח למייל שלך ומופיע גם בסטודיו AI
+              לעריכה.
+            </p>
+          </div>
+        </div>
+
+        <!-- Interactive Registration & Simulation Card -->
+        <div
+          class="bg-white rounded-3xl border border-slate-200/80 shadow-soft p-6 sm:p-8 max-w-2xl mx-auto"
+        >
+          <h2 class="font-torah text-2xl font-bold text-midnight mb-1">
+            רישום והדמיית קו כשר
+          </h2>
+          <p class="text-xs text-slate-500 mb-6">
+            הזן מספר טלפון כשר ומייל לקבלת קוד PIN אישי ובדיקת הדמיית קבלת
+            הקלטה.
+          </p>
+
+          <!-- Form (Not Linked) -->
+          <form
+            id="kosher-form"
+            onsubmit="registerKosherPhone(event)"
+            class="space-y-4"
+          >
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-midnight mb-1.5"
+                  >מספר טלפון כשר</label
+                >
+                <input
+                  type="tel"
+                  id="kosher-phone-input"
+                  required
+                  placeholder="052-7654321"
+                  dir="ltr"
+                  class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-midnight mb-1.5"
+                  >כתובת מייל לקבלת התמלול</label
+                >
+                <input
+                  type="email"
+                  id="kosher-email-input"
+                  required
+                  placeholder="rabbi@example.com"
+                  dir="ltr"
+                  class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="w-full py-3.5 rounded-2xl bg-midnight hover:bg-midnight-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
+            >
+              <i data-lucide="key-round" class="w-4 h-4 text-gold-light"></i>
+              <span>חבר מספר והפק קוד PIN אישי</span>
+            </button>
+          </form>
+
+          <!-- Connected View -->
+          <div id="kosher-linked-box" class="hidden space-y-5">
+            <div
+              class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-5"
+            >
+              <div class="flex items-center justify-between mb-3">
+                <div
+                  class="flex items-center gap-2 text-emerald-800 font-bold text-sm"
+                >
+                  <span
+                    class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"
+                  ></span>
+                  הקו הכשר מקושר לחשבונך
+                </div>
+                <button
+                  onclick="disconnectKosherPhone()"
+                  class="text-xs font-semibold text-red-600 hover:underline"
+                >
+                  נתק מספר
+                </button>
+              </div>
+              <div
+                class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 mb-4"
+              >
+                <div>
+                  טלפון מזוהה:
+                  <strong
+                    id="kosher-linked-phone"
+                    dir="ltr"
+                    class="font-mono text-midnight"
+                  ></strong>
+                </div>
+                <div>
+                  מייל יעד:
+                  <strong
+                    id="kosher-linked-email"
+                    dir="ltr"
+                    class="text-midnight"
+                  ></strong>
+                </div>
+              </div>
+              <div
+                class="pt-3 border-t border-emerald-200 flex items-center justify-between"
+              >
+                <span class="text-xs font-bold text-emerald-900"
+                  >קוד ה-PIN האישי שלך:</span
+                >
+                <span
+                  id="kosher-linked-pin"
+                  class="font-mono text-2xl font-extrabold tracking-widest bg-white px-4 py-1 rounded-xl border border-emerald-300 text-midnight"
+                  >----</span
+                >
+              </div>
+            </div>
+
+            <button
+              onclick="simulateIncomingKosherRecording()"
+              class="w-full py-3.5 rounded-2xl bg-gradient-to-l from-gold to-gold-amber hover:opacity-95 text-white font-bold text-sm shadow-gold-glow transition flex items-center justify-center gap-2"
+            >
+              <i data-lucide="phone-incoming" class="w-4 h-4"></i>
+              <span>הדמה קבלת הקלטה מהקו הכשר לסטודיו AI</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- VIEW 4: PRICING (מחירון מוזל)                                    -->
+      <!-- ================================================================ -->
+      <section
+        id="view-pricing"
+        class="view-section hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16"
+      >
+        <div class="text-center max-w-2xl mx-auto mb-12">
+          <span
+            class="inline-block px-3.5 py-1 rounded-full bg-gold-soft text-gold-amber font-bold text-xs border border-gold-border mb-3"
+          >
+            מחירים הוגנים ונגישים לציבור החרדי והדתי
+          </span>
+          <h1
+            class="font-torah text-3xl sm:text-5xl font-bold text-midnight mb-4"
+          >
+            מחירון שקוף ומשתלם יותר
+          </h1>
+          <p class="text-slate-600 text-base">
+            כל חבילה כוללת גם דקות תמלול וגם פענוח כתבי יד (OCR) ועריכה תורנית.
+            תשלום נוח באשראי, בנדרים פלוס, בקהילות או בהעברה בנקאית.
+          </p>
+        </div>
+
+        <!-- 4 Sleek Pricing Cards -->
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch"
+        >
+          <!-- Plan 1: Free -->
+          <div
+            class="bg-white rounded-3xl border border-slate-200/80 shadow-soft p-6 flex flex-col justify-between"
+          >
+            <div>
+              <div
+                class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1"
+              >
+                התנסות מיידית
+              </div>
+              <h3 class="font-torah text-2xl font-bold text-midnight mb-4">
+                חינם להתנסות
+              </h3>
+              <div class="flex items-baseline gap-1 mb-1">
+                <span class="text-4xl font-extrabold text-midnight">₪0</span>
+              </div>
+              <div class="text-xs text-emerald-700 font-semibold mb-6">
+                ללא כרטיס אשראי
+              </div>
+              <ul class="space-y-3 text-sm text-slate-600 mb-7">
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  <strong>60 דקות</strong> תמלול AI
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  <strong>15 דפי</strong> פענוח כתב יד
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  עריכה תורנית וייצוא Word
+                </li>
+              </ul>
+            </div>
+            <button
+              onclick="switchView('studio')"
+              class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-midnight font-bold text-sm transition"
+            >
+              התחל בסטודיו עכשיו
+            </button>
+          </div>
+
+          <!-- Plan 2: Avrech / Lecturer (Most Popular) -->
+          <div
+            class="dark-card-mesh text-white rounded-3xl border-2 border-gold shadow-elevated p-6 flex flex-col justify-between relative lg:-translate-y-2"
+          >
+            <div
+              class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-l from-gold to-gold-amber text-white text-xs font-extrabold px-4 py-1 rounded-full shadow-md whitespace-nowrap"
+            >
+              הכי פופולרי
+            </div>
+            <div>
+              <div
+                class="text-xs font-bold text-gold-light uppercase tracking-wide mb-1"
+              >
+                לרבנים ולומדים
+              </div>
+              <h3 class="font-torah text-2xl font-bold text-white mb-4">
+                אברך / מרצה
+              </h3>
+              <div class="flex items-baseline gap-1 mb-1">
+                <span class="text-4xl font-extrabold text-white">₪29</span>
+                <span class="text-xs text-slate-300">/ חודש</span>
+              </div>
+              <div class="text-xs text-gold-light font-semibold mb-6">
+                כ-9.6 אג׳ לדקה בלבד
+              </div>
+              <ul class="space-y-3 text-sm text-slate-200 mb-7">
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-light shrink-0"
+                  ></i>
+                  <strong>300 דקות</strong> תמלול תורני
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-light shrink-0"
+                  ></i>
+                  <strong>100 דפי</strong> כתב יד (OCR)
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-light shrink-0"
+                  ></i>
+                  עריכה לספר ועלון שבת
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-light shrink-0"
+                  ></i>
+                  איתור מראי מקומות אוטומטי
+                </li>
+              </ul>
+            </div>
+            <button
+              onclick="openCheckoutModal('אברך / מרצה', 300, 100, 29)"
+              class="w-full py-3.5 rounded-xl bg-gradient-to-l from-gold to-gold-amber hover:opacity-95 text-white font-extrabold text-sm shadow-gold-glow transition"
+            >
+              בחר חבילה (דמו)
+            </button>
+          </div>
+
+          <!-- Plan 3: Kollel / Institute -->
+          <div
+            class="bg-white rounded-3xl border border-slate-200/80 shadow-soft hover:border-gold-border transition p-6 flex flex-col justify-between"
+          >
+            <div>
+              <div
+                class="text-xs font-bold text-gold-amber uppercase tracking-wide mb-1"
+              >
+                למכוני הוצאה לאור
+              </div>
+              <h3 class="font-torah text-2xl font-bold text-midnight mb-4">
+                כולל / מכון
+              </h3>
+              <div class="flex items-baseline gap-1 mb-1">
+                <span class="text-4xl font-extrabold text-midnight">₪79</span>
+                <span class="text-xs text-slate-500">/ חודש</span>
+              </div>
+              <div class="text-xs text-emerald-700 font-semibold mb-6">
+                7.9 אג׳ לדקה בלבד
+              </div>
+              <ul class="space-y-3 text-sm text-slate-600 mb-7">
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  <strong>1,000 דקות</strong> תמלול
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  <strong>400 דפי</strong> כתב יד (OCR)
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  קו טלפון כשר ייעודי
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  הפרדת דוברים לחברותא
+                </li>
+              </ul>
+            </div>
+            <button
+              onclick="openCheckoutModal('כולל / מכון', 1000, 400, 79)"
+              class="w-full py-3 rounded-xl bg-midnight hover:bg-midnight-700 text-white font-bold text-sm transition"
+            >
+              בחר חבילה (דמו)
+            </button>
+          </div>
+
+          <!-- Plan 4: Yeshiva / Institution -->
+          <div
+            class="bg-white rounded-3xl border border-slate-200/80 shadow-soft hover:border-gold-border transition p-6 flex flex-col justify-between"
+          >
+            <div>
+              <div
+                class="text-xs font-bold text-gold-amber uppercase tracking-wide mb-1"
+              >
+                למוסדות גדולים
+              </div>
+              <h3 class="font-torah text-2xl font-bold text-midnight mb-4">
+                ישיבה / מוסד
+              </h3>
+              <div class="flex items-baseline gap-1 mb-1">
+                <span class="text-4xl font-extrabold text-midnight">₪189</span>
+                <span class="text-xs text-slate-500">/ חודש</span>
+              </div>
+              <div class="text-xs text-emerald-700 font-bold mb-6">
+                6.3 אג׳ לדקה בלבד!
+              </div>
+              <ul class="space-y-3 text-sm text-slate-600 mb-7">
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  <strong>3,000 דקות</strong> תמלול
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  כתבי יד <strong>ללא הגבלה</strong>
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  מספר משתמשים וחשבונית מס
+                </li>
+                <li class="flex items-center gap-2">
+                  <i
+                    data-lucide="check"
+                    class="w-4 h-4 text-gold-amber shrink-0"
+                  ></i>
+                  תשלום בנדרים פלוס / העברה
+                </li>
+              </ul>
+            </div>
+            <button
+              onclick="openCheckoutModal('ישיבה / מוסד', 3000, 9999, 189)"
+              class="w-full py-3 rounded-xl bg-midnight hover:bg-midnight-700 text-white font-bold text-sm transition"
+            >
+              בחר חבילה (דמו)
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="bg-white border-t border-slate-200/80 mt-auto">
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500"
+      >
+        <div class="flex items-center gap-2">
+          <i data-lucide="book-open-text" class="w-4 h-4 text-gold-amber"></i>
+          <span class="font-torah text-base font-bold text-midnight"
+            >קול הספר AI</span
+          >
+          <span>• תמלול תורני ופענוח כתבי יד</span>
+        </div>
+        <div>
+          גרסת דמו פעילה • ללא חיוב אמיתי • עיצוב נקי ומותאם לציבור החרדי והדתי
+        </div>
+      </div>
+    </footer>
+
+    <!-- ==================== SAVED HISTORY SLIDE-OVER DRAWER ==================== -->
+    <div id="history-drawer" class="fixed inset-0 z-50 hidden">
+      <div
+        onclick="toggleHistoryDrawer()"
+        class="absolute inset-0 bg-midnight/40 backdrop-blur-xs"
+      ></div>
+      <div
+        class="absolute top-0 left-0 h-full w-full max-w-sm bg-white shadow-2xl border-r border-slate-200 flex flex-col"
+      >
+        <div
+          class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-alabaster"
+        >
+          <div class="flex items-center gap-2 font-bold text-midnight">
+            <i data-lucide="history" class="w-4 h-4 text-gold-amber"></i>
+            <span>היסטוריית תמלולים ופענוחים</span>
+          </div>
+          <button
+            onclick="toggleHistoryDrawer()"
+            class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-600 transition"
+          >
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div
+          id="history-list"
+          class="flex-grow overflow-y-auto p-4 space-y-2.5"
+        ></div>
+      </div>
+    </div>
+
+    <!-- ==================== MOCK CHECKOUT MODAL ==================== -->
+    <div
+      id="checkout-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-midnight/60 backdrop-blur-sm p-4 overflow-y-auto"
+    >
+      <div
+        class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden my-auto"
+      >
+        <!-- Header -->
+        <div
+          class="dark-card-mesh text-white px-6 py-5 flex items-center justify-between"
+        >
+          <div>
+            <div class="text-xs text-gold-light font-semibold">
+              השלמת רכישה (דמו)
+            </div>
+            <h3
+              id="modal-plan-title"
+              class="font-torah text-2xl font-bold mt-0.5"
+            >
+              חבילה
+            </h3>
+          </div>
+          <button
+            onclick="closeCheckoutModal()"
+            class="p-1.5 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition"
+          >
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Demo Notice -->
+        <div
+          class="bg-amber-50 border-b border-amber-200 px-6 py-2.5 text-xs text-amber-900 font-semibold flex items-center gap-2"
+        >
+          <i data-lucide="info" class="w-4 h-4 text-amber-600 shrink-0"></i>
+          <span>מצב הדגמה – לא מתבצע חיוב אמיתי. היתרה תתעדכן מיד!</span>
+        </div>
+
+        <!-- Payment Form View -->
+        <div id="checkout-form-view" class="p-6 space-y-5">
+          <div class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl">
+            <button
+              type="button"
+              onclick="switchPaymentTab('credit')"
+              data-pay-tab="credit"
+              class="pay-tab py-2 rounded-lg text-xs font-bold bg-white text-midnight shadow-sm transition"
+            >
+              אשראי
+            </button>
+            <button
+              type="button"
+              onclick="switchPaymentTab('nedarim')"
+              data-pay-tab="nedarim"
+              class="pay-tab py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-midnight transition"
+            >
+              נדרים פלוס
+            </button>
+            <button
+              type="button"
+              onclick="switchPaymentTab('bank')"
+              data-pay-tab="bank"
+              class="pay-tab py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-midnight transition"
+            >
+              העברה בנקאית
+            </button>
+          </div>
+
+          <!-- Credit Card Panel -->
+          <div id="pay-panel-credit" class="pay-panel space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-midnight mb-1"
+                >שם בעל הכרטיס</label
+              >
+              <input
+                type="text"
+                value="ישראל ישראלי"
+                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-midnight mb-1"
+                >מספר כרטיס (דמה)</label
+              >
+              <input
+                type="text"
+                value="4580 1234 5678 9010"
+                dir="ltr"
+                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-gold"
+              />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-midnight mb-1"
+                  >תוקף</label
+                >
+                <input
+                  type="text"
+                  value="12/29"
+                  dir="ltr"
+                  class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-gold"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-midnight mb-1"
+                  >CVV</label
+                >
+                <input
+                  type="text"
+                  value="123"
+                  dir="ltr"
+                  class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-gold"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Nedarim Plus / Kehilot Panel -->
+          <div id="pay-panel-nedarim" class="pay-panel hidden space-y-3">
+            <div
+              class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 leading-relaxed"
+            >
+              תשלום מאובטח דרך <strong>נדרים פלוס / קהילות</strong> (הדגמה). הזן
+              טלפון או ת.ז. לאישור מיידי.
+            </div>
+            <select
+              class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white outline-none focus:border-gold"
+            >
+              <option>נדרים פלוס (Nedarim Plus)</option>
+              <option>מערכת קהילות (Kehilot)</option>
+            </select>
+            <input
+              type="text"
+              value="052-7654321"
+              dir="ltr"
+              class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-gold"
+            />
+          </div>
+
+          <!-- Bank Transfer Panel -->
+          <div id="pay-panel-bank" class="pay-panel hidden">
+            <div
+              class="p-4 rounded-xl bg-alabaster border border-slate-200 text-xs text-slate-700 space-y-1.5"
+            >
+              <div class="font-bold text-midnight">
+                פרטי העברה בנקאית (דוגמה):
+              </div>
+              <div>בנק פאג"י (52) • סניף 185 • חשבון 613613</div>
+              <div class="text-slate-500">
+                לחיצה למטה תאשר את ההעברה בדמו ותעדכן את היתרה מיד.
+              </div>
+            </div>
+          </div>
+
+          <button
+            onclick="completeMockCheckout()"
+            class="w-full py-3.5 rounded-2xl bg-gradient-to-l from-gold to-gold-amber hover:opacity-95 text-white font-extrabold text-sm shadow-gold-glow transition flex items-center justify-center gap-2"
+          >
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            <span id="modal-pay-btn-label">אשר תשלום דמו</span>
+          </button>
+        </div>
+
+        <!-- Celebratory Receipt View -->
+        <div
+          id="checkout-receipt-view"
+          class="hidden p-7 text-center space-y-4"
+        >
+          <div
+            class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center"
+          >
+            <i data-lucide="check-circle-2" class="w-9 h-9"></i>
+          </div>
+          <h3 class="font-torah text-2xl font-bold text-midnight">
+            החבילה הופעלה בהצלחה!
+          </h3>
+          <p
+            id="receipt-summary-text"
+            class="text-sm text-slate-600 leading-relaxed"
+          ></p>
+          <div
+            class="bg-alabaster border border-slate-200 rounded-2xl p-4 text-xs text-slate-600 space-y-1"
+          >
+            <div>
+              מספר קבלה (דמו):
+              <strong id="receipt-id" class="font-mono text-midnight"></strong>
+            </div>
+            <div>
+              יתרה עדכנית:
+              <strong id="receipt-balance" class="text-midnight"></strong>
+            </div>
+          </div>
+          <button
+            onclick="
+              closeCheckoutModal();
+              switchView('studio');
+            "
+            class="w-full py-3 rounded-xl bg-midnight hover:bg-midnight-700 text-white font-bold text-sm transition"
+          >
+            עבור לסטודיו AI
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TOAST CONTAINER ==================== -->
+    <div
+      id="toast-container"
+      class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm"
+    ></div>
+
+    <!-- ==================== APPLICATION LOGIC ==================== -->
+    <script>
+      /**
+       * קול הספר AI - Interactive SaaS Demo with REAL Gemini API Integration
+       * Features:
+       * - Real Audio Transcription (Mic MediaRecorder + File Upload -> Gemini 3 Flash)
+       * - Real Handwriting OCR (Image Upload + Mobile Camera + Canvas Sample Generator -> Gemini 3 Flash Vision)
+       * - Real Rabbinic Text Transformations (Sefer, Alon Shabbat, Citations, Expand Abbr, Summary -> Gemini 3 Flash)
+       * - LocalStorage persistence for balances, saved history, and kosher phone registration.
+       */
+
+      const apiKey = ""; // Runtime-provided Gemini API key
+      const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      const STORAGE_KEYS = {
+        BALANCE: "kol_hasefer_v2_balance",
+        HISTORY: "kol_hasefer_v2_history",
+        KOSHER: "kol_hasefer_v2_kosher",
+      };
+
+      const MAX_AUDIO_BYTES = 7 * 1024 * 1024; // 7MB safe inlineData limit for demo
+      const MAX_IMAGE_BYTES = 7 * 1024 * 1024;
+
+      // Global App State
+      const state = {
+        minutes: 60,
+        pages: 15,
+        history: [],
+        kosherPhone: null,
+        pronunciation: "רגילה",
+        // Audio state
+        audioBlob: null,
+        audioMimeType: "audio/webm",
+        audioFileName: "",
+        isRecording: false,
+        mediaRecorder: null,
+        recordedChunks: [],
+        recSeconds: 0,
+        recTimerId: null,
+        // OCR state
+        ocrBase64: null,
+        ocrMimeType: "image/png",
+        ocrFileName: "",
+        // Editor & Modal state
+        editorFontSize: 19,
+        activePlan: null,
+      };
+
+      // --- Sample Instant Transcripts (for one-click tryout without uploading) ---
+      const SAMPLE_TEXTS = {
+        "daf-yomi": {
+          title: 'שיעור דף היומי – בבא מציעא דף כא ע"א',
+          text: `בסייעתא דשמיא, אנו עוסקים במשנה בפרק אלו מציאות (בבא מציעא דף כא ע"א): "אלו מציאות שלו ואלו חייב להכריז – מצא פירות מפוזרין, מעות מפוזרין, הרי אלו שלו".\n\nוהגמרא מקשה מיד: הרי במעות מפוזרות עדיין לא ידענו אם הבעלים הרגיש שנפלו לו, ואם כן הוי ייאוש שלא מדעת, וקיימא לן כאביי דייאוש שלא מדעת לא הוי ייאוש! ותירץ רבי יצחק: "אדם עשוי למשמש בכיסו בכל שעה ושעה", ולכן ודאי כבר הרגיש והתייאש קודם שבאו ליד המוצא.\n\nוכן פסק מרן בשולחן ערוך (חו"מ סי' רס"ב סעי' ג') שמעות מפוזרות שאין בהן סימן הרי הן של המוצא. ומכאן למדנו מוסר השכל גדול: כשם שאדם בודק כיסו בכל שעה, כך יפשפש במעשיו בכל יום.`,
+        },
+        parasha: {
+          title: "דרשה לפרשת וישלח – כוחה של תפילה",
+          text: `רבותיי היקרים, בפרשת השבוע כתיב: "ויירא יעקב מאוד וייצר לו" (בראשית לב, ח). ולכאורה תמוה, שהרי כבר הבטיחו הקב"ה "והנה אנכי עמך ושמרתיך בכל אשר תלך", ומה מקום ליראה?\n\nומבאר רש"י בשם חז"ל שחשש יעקב אבינו שמא יגרום החטא, ועל כן התקין עצמו לשלושה דברים: לדורון, לתפילה ולמלחמה. יהודי לעולם אינו סומך על זכויותיו, אלא פונה בתפילה ובהכנעה לפני ריבונו של עולם, וכך הופך את הפחד לישועה.`,
+        },
+      };
+
+      // --- Initialization ---
+      window.addEventListener("DOMContentLoaded", () => {
+        loadPersistedState();
+        updateBalanceUI();
+        renderHistoryDrawer();
+        renderKosherUI();
+        setupDropzones();
+        updateEditorStats();
+        if (window.lucide) lucide.createIcons();
+      });
+
+      // --- Persistence Helpers ---
+      function loadPersistedState() {
+        try {
+          const bal = JSON.parse(localStorage.getItem(STORAGE_KEYS.BALANCE));
+          if (bal && typeof bal.minutes === "number") {
+            state.minutes = bal.minutes;
+            state.pages = bal.pages ?? 15;
+          }
+          const hist = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORY));
+          if (Array.isArray(hist)) state.history = hist;
+
+          const kosher = JSON.parse(localStorage.getItem(STORAGE_KEYS.KOSHER));
+          if (kosher && kosher.phone) state.kosherPhone = kosher;
+        } catch (e) {}
+      }
+
+      function persistState() {
+        try {
+          localStorage.setItem(
+            STORAGE_KEYS.BALANCE,
+            JSON.stringify({ minutes: state.minutes, pages: state.pages }),
+          );
+          localStorage.setItem(
+            STORAGE_KEYS.HISTORY,
+            JSON.stringify(state.history.slice(0, 30)),
+          );
+          if (state.kosherPhone) {
+            localStorage.setItem(
+              STORAGE_KEYS.KOSHER,
+              JSON.stringify(state.kosherPhone),
+            );
+          } else {
+            localStorage.removeItem(STORAGE_KEYS.KOSHER);
+          }
+        } catch (e) {}
+      }
+
+      function updateBalanceUI() {
+        const minStr = state.minutes.toLocaleString("he-IL");
+        const pagesStr =
+          state.pages >= 9000
+            ? "ללא הגבלה"
+            : state.pages.toLocaleString("he-IL");
+        document.getElementById("balance-minutes").textContent = minStr;
+        document.getElementById("balance-pages").textContent = pagesStr;
+        document.getElementById("mobile-balance-minutes").textContent = minStr;
+        document.getElementById("mobile-balance-pages").textContent = pagesStr;
+      }
+
+      // --- Navigation ---
+      function switchView(viewName) {
+        ["home", "studio", "kosher-phone", "pricing"].forEach((v) => {
+          const el = document.getElementById(`view-${v}`);
+          if (el) el.classList.toggle("hidden", v !== viewName);
+        });
+
+        document.querySelectorAll(".nav-pill").forEach((btn) => {
+          const active = btn.getAttribute("data-nav") === viewName;
+          btn.className = active
+            ? "nav-pill px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 bg-white text-midnight shadow-sm"
+            : "nav-pill px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 text-slate-600 hover:text-midnight";
+        });
+
+        document.querySelectorAll(".mobile-nav-pill").forEach((btn) => {
+          const active = btn.getAttribute("data-nav-mobile") === viewName;
+          btn.className = active
+            ? "mobile-nav-pill w-full text-right px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 bg-slate-100 text-midnight"
+            : "mobile-nav-pill w-full text-right px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-700 hover:bg-slate-50";
+        });
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function toggleMobileMenu() {
+        document.getElementById("mobile-menu").classList.toggle("hidden");
+      }
+
+      function switchStudioTab(tab) {
+        const isAudio = tab === "audio";
+        document
+          .getElementById("studio-panel-audio")
+          .classList.toggle("hidden", !isAudio);
+        document
+          .getElementById("studio-panel-ocr")
+          .classList.toggle("hidden", isAudio);
+
+        const btnAudio = document.getElementById("tab-btn-audio");
+        const btnOcr = document.getElementById("tab-btn-ocr");
+        btnAudio.className = isAudio
+          ? "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-white text-midnight shadow-sm transition flex items-center justify-center gap-2"
+          : "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:text-midnight transition flex items-center justify-center gap-2";
+        btnOcr.className = !isAudio
+          ? "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-white text-midnight shadow-sm transition flex items-center justify-center gap-2"
+          : "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:text-midnight transition flex items-center justify-center gap-2";
+
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function selectPronunciation(val, btn) {
+        state.pronunciation = val;
+        document.querySelectorAll(".pron-pill").forEach((p) => {
+          p.className =
+            "pron-pill py-1.5 px-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+        });
+        btn.className =
+          "pron-pill py-1.5 px-2 rounded-xl text-xs font-bold bg-midnight text-white transition";
+      }
+
+      // --- Toast Notifications (No alert()) ---
+      function showToast(message, type = "info") {
+        const container = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+        const palette = {
+          success: "bg-emerald-700 text-white border-emerald-500",
+          error: "bg-red-700 text-white border-red-500",
+          info: "bg-midnight text-white border-gold/50",
+        };
+        toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-elevated text-xs sm:text-sm font-semibold transition-all duration-300 transform translate-y-2 opacity-0 ${palette[type] || palette.info}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        requestAnimationFrame(() =>
+          toast.classList.remove("translate-y-2", "opacity-0"),
+        );
+        setTimeout(() => {
+          toast.classList.add("opacity-0", "translate-y-2");
+          setTimeout(() => toast.remove(), 300);
+        }, 3800);
+      }
+
+      // --- Gemini API Call with Exponential Backoff ---
+      async function callGeminiAPI(payload) {
+        const delays = [1000, 2000, 4000, 8000];
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= delays.length; attempt++) {
+          try {
+            const response = await fetch("/api/gemini", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            if (response.ok) {
+              const data = await response.json();
+              const text = data?.candidates?.[0]?.content?.parts
+                ?.map((p) => p.text || "")
+                .join("\n")
+                .trim();
+              if (!text) throw new Error("לא התקבל טקסט מהמערכת. נסה שוב.");
+              return text;
+            }
+
+            if (response.status === 429 || response.status >= 500) {
+              lastError = new Error(`שגיאת שרת זמנית (${response.status})`);
+              if (attempt < delays.length) {
+                await new Promise((r) => setTimeout(r, delays[attempt]));
+                continue;
+              }
+            } else {
+              const errJson = await response.json().catch(() => ({}));
+              throw new Error(
+                errJson?.error?.message || `שגיאה בבקשה (${response.status})`,
+              );
+            }
+          } catch (err) {
+            lastError = err;
+            if (attempt < delays.length) {
+              await new Promise((r) => setTimeout(r, delays[attempt]));
+              continue;
+            }
+          }
+        }
+        throw lastError || new Error("אירעה שגיאת תקשורת מול מנוע ה-AI.");
+      }
+
+      // Convert Blob/File to pure Base64 string (without data URL prefix)
+      function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = reader.result || "";
+            const base64 = String(res).split(",")[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      // --- Dropzone Setup ---
+      function setupDropzones() {
+        const bindDrop = (elId, handler) => {
+          const el = document.getElementById(elId);
+          if (!el) return;
+          ["dragenter", "dragover"].forEach((e) =>
+            el.addEventListener(e, (ev) => {
+              ev.preventDefault();
+              el.classList.add("border-gold", "bg-gold-soft/40");
+            }),
+          );
+          ["dragleave", "drop"].forEach((e) =>
+            el.addEventListener(e, (ev) => {
+              ev.preventDefault();
+              el.classList.remove("border-gold", "bg-gold-soft/40");
+            }),
+          );
+          el.addEventListener("drop", (ev) => {
+            const file = ev.dataTransfer?.files?.[0];
+            if (file) handler(file);
+          });
+        };
+        bindDrop("audio-dropzone", loadAudioFile);
+        bindDrop("ocr-dropzone", loadOcrImageFile);
+      }
+
+      // ==================== AUDIO RECORDING & UPLOAD ====================
+      async function toggleAudioRecording() {
+        const btn = document.getElementById("record-toggle-btn");
+        const label = document.getElementById("record-status-label");
+        const timerEl = document.getElementById("record-timer");
+        const waveEl = document.getElementById("live-waveform");
+
+        if (!state.isRecording) {
+          try {
+            if (
+              !navigator.mediaDevices ||
+              !navigator.mediaDevices.getUserMedia
+            ) {
+              showToast(
+                "הדפדפן שלך אינו תומך בהקלטה ישירה מהמיקרופון. תוכל להעלות קובץ שמע.",
+                "error",
+              );
+              return;
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+            });
+            const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+              ? "audio/webm"
+              : MediaRecorder.isTypeSupported("audio/mp4")
+                ? "audio/mp4"
+                : "";
+            state.mediaRecorder = mimeType
+              ? new MediaRecorder(stream, { mimeType })
+              : new MediaRecorder(stream);
+            state.recordedChunks = [];
+
+            state.mediaRecorder.ondataavailable = (e) => {
+              if (e.data && e.data.size > 0) state.recordedChunks.push(e.data);
+            };
+
+            state.mediaRecorder.onstop = () => {
+              const finalMime = state.mediaRecorder.mimeType || "audio/webm";
+              const blob = new Blob(state.recordedChunks, { type: finalMime });
+              const timeTag = new Date().toLocaleTimeString("he-IL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              setAudioPreview(blob, finalMime, `הקלטה חיה (${timeTag}).webm`);
+              stream.getTracks().forEach((t) => t.stop());
+              showToast('ההקלטה נשמרה! לחץ על "תמלל עכשיו עם AI"', "success");
+            };
+
+            state.mediaRecorder.start();
+            state.isRecording = true;
+            state.recSeconds = 0;
+            timerEl.textContent = "00:00";
+
+            btn.classList.remove("bg-midnight", "hover:bg-midnight-700");
+            btn.classList.add("bg-red-600", "hover:bg-red-700", "rec-active");
+            document
+              .getElementById("record-btn-icon")
+              .setAttribute("data-lucide", "square");
+            label.textContent = "מקליט כעת... לחץ לעצירה";
+            waveEl.classList.remove("hidden");
+            waveEl.classList.add("flex");
+            if (window.lucide) lucide.createIcons();
+
+            state.recTimerId = setInterval(() => {
+              state.recSeconds++;
+              const m = String(Math.floor(state.recSeconds / 60)).padStart(
+                2,
+                "0",
+              );
+              const s = String(state.recSeconds % 60).padStart(2, "0");
+              timerEl.textContent = `${m}:${s}`;
+            }, 1000);
+          } catch (err) {
+            showToast(
+              "לא ניתן לגשת למיקרופון (אין הרשאה). תוכל להעלות קובץ שמע במקום זאת.",
+              "error",
+            );
+          }
+        } else {
+          state.isRecording = false;
+          clearInterval(state.recTimerId);
+          if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+            state.mediaRecorder.stop();
+          }
+          btn.classList.add("bg-midnight", "hover:bg-midnight-700");
+          btn.classList.remove("bg-red-600", "hover:bg-red-700", "rec-active");
+          document
+            .getElementById("record-btn-icon")
+            .setAttribute("data-lucide", "mic");
+          label.textContent = "הקלטה חיה מהמיקרופון (5–20 שניות)";
+          waveEl.classList.add("hidden");
+          waveEl.classList.remove("flex");
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+
+      function handleAudioFileInput(event) {
+        const file = event.target.files?.[0];
+        if (file) loadAudioFile(file);
+      }
+
+      function loadAudioFile(file) {
+        if (file.size > MAX_AUDIO_BYTES) {
+          showToast("הקובץ גדול מדי לדמו (מומלץ קובץ קצר עד 5MB).", "error");
+          return;
+        }
+        const mime = file.type || "audio/mpeg";
+        setAudioPreview(file, mime, file.name);
+        showToast(`הקובץ "${file.name}" נטען ומוכן לתמלול AI`, "success");
+      }
+
+      function setAudioPreview(blob, mimeType, fileName) {
+        state.audioBlob = blob;
+        state.audioMimeType = mimeType.split(";")[0];
+        state.audioFileName = fileName;
+
+        const sizeKB = Math.max(1, Math.round(blob.size / 1024));
+        document.getElementById("audio-file-name").textContent = fileName;
+        document.getElementById("audio-file-meta").textContent =
+          `${sizeKB} KB • מוכן לתמלול אמיתי`;
+        const player = document.getElementById("audio-player");
+        player.src = URL.createObjectURL(blob);
+        document
+          .getElementById("audio-preview-card")
+          .classList.remove("hidden");
+      }
+
+      function clearAudioSelection() {
+        state.audioBlob = null;
+        state.audioFileName = "";
+        document.getElementById("audio-file-input").value = "";
+        document.getElementById("audio-preview-card").classList.add("hidden");
+        document.getElementById("audio-player").removeAttribute("src");
+      }
+
+      // --- REAL Gemini API Audio Transcription ---
+      async function runRealAudioTranscription() {
+        if (!state.audioBlob) {
+          showToast(
+            "אנא הקלט שמע מהמיקרופון או העלה קובץ שמע קצר תחילה",
+            "error",
+          );
+          return;
+        }
+        if (state.minutes < 1) {
+          showToast(
+            "יתרת הדקות הסתיימה. תוכל להוסיף דקות חינם במחירון הדמו!",
+            "error",
+          );
+          return;
+        }
+
+        const btn = document.getElementById("btn-run-audio-ai");
+        btn.disabled = true;
+        btn.classList.add("opacity-60", "cursor-not-allowed");
+        showProgress(
+          true,
+          "מתמלל את ההקלטה באמצעות Gemini AI...",
+          "ממיר שמע ומעבד מושגים תורניים...",
+          30,
+        );
+
+        try {
+          const base64Audio = await blobToBase64(state.audioBlob);
+          showProgress(
+            true,
+            "מתמלל את ההקלטה באמצעות Gemini AI...",
+            "מפענח הברה, ארמית ופיסוק חכם...",
+            70,
+          );
+
+          const includeAramaic = document.getElementById("opt-aramaic").checked;
+          const includePunct =
+            document.getElementById("opt-punctuation").checked;
+          const includeDiar =
+            document.getElementById("opt-diarization").checked;
+
+          const systemPrompt = `אתה מומחה עולמי לתמלול עברית, ארמית תלמודית, יידיש ומונחים תורניים (ש"ס, רמב"ם, שולחן ערוך, פוסקים, חסידות ומוסר).
+תפקידך לתמלל במדויק את קטע השמע המצורף לעברית תקנית, ברורה ומכובדת.
+הנחיות:
+- סגנון הברה צפוי: ${state.pronunciation}.
+- ${includeAramaic ? "זהה וכתוב במדויק מונחים בארמית וביטויים תורניים." : ""}
+- ${includePunct ? "פסק את הטקסט היטב וחלק לפסקאות קריאות." : ""}
+- ${includeDiar ? 'אם יש יותר מדובר אחד, הפרד ביניהם (למשל: "דובר א:", "דובר ב:").' : ""}
+- החזר אך ורק את טקסט התמלול עצמו ללא הקדמות או הסברים מיותרים.`;
+
+          const payload = {
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: "אנא תמלל את קטע השמע המצורף בעברית מדויקת." },
+                  {
+                    inlineData: {
+                      mimeType: state.audioMimeType,
+                      data: base64Audio,
+                    },
+                  },
+                ],
+              },
+            ],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+          };
+
+          const transcript = await callGeminiAPI(payload);
+          showProgress(true, "התמלול הושלם!", "טוען לעורך התורני...", 100);
+
+          // Deduct 1 demo minute
+          state.minutes = Math.max(0, state.minutes - 1);
+          const docTitle =
+            state.audioFileName.replace(/\.[^/.]+$/, "") || "תמלול שמע חדש";
+          setEditorContent(docTitle, transcript);
+          addToHistory(docTitle, transcript, "תמלול שמע");
+          persistState();
+          updateBalanceUI();
+
+          showToast("התמלול האמיתי הושלם בהצלחה!", "success");
+        } catch (err) {
+          showToast(`שגיאה בתמלול: ${err.message}`, "error");
+        } finally {
+          setTimeout(() => showProgress(false), 400);
+          btn.disabled = false;
+          btn.classList.remove("opacity-60", "cursor-not-allowed");
+        }
+      }
+
+      function loadSampleAudioTranscript(key) {
+        const sample = SAMPLE_TEXTS[key];
+        if (!sample) return;
+        setEditorContent(sample.title, sample.text);
+        addToHistory(sample.title, sample.text, "דוגמה");
+        persistState();
+        showToast(
+          "התמלול לדוגמה נטען! נסה כעת את כפתורי עריכת ה-AI למעלה",
+          "info",
+        );
+      }
+
+      // ==================== HANDWRITING OCR (REAL GEMINI VISION) ====================
+      function handleOcrImageInput(event) {
+        const file = event.target.files?.[0];
+        if (file) loadOcrImageFile(file);
+      }
+
+      async function loadOcrImageFile(file) {
+        if (file.size > MAX_IMAGE_BYTES) {
+          showToast("התמונה גדולה מדי (עד 7MB). נסה תמונה קלה יותר.", "error");
+          return;
+        }
+        const base64 = await blobToBase64(file);
+        const mime = file.type || "image/jpeg";
+        setOcrPreview(base64, mime, file.name);
+        showToast('התמונה נטענה! לחץ על "פענח כתב יד עם AI"', "success");
+      }
+
+      function setOcrPreview(base64, mimeType, fileName) {
+        state.ocrBase64 = base64;
+        state.ocrMimeType = mimeType;
+        state.ocrFileName = fileName;
+        document.getElementById("ocr-file-name").textContent = fileName;
+        document.getElementById("ocr-preview-img").src =
+          `data:${mimeType};base64,${base64}`;
+        document.getElementById("ocr-preview-card").classList.remove("hidden");
+      }
+
+      function clearOcrSelection() {
+        state.ocrBase64 = null;
+        state.ocrFileName = "";
+        document.getElementById("ocr-file-input").value = "";
+        document.getElementById("ocr-camera-input").value = "";
+        document.getElementById("ocr-preview-card").classList.add("hidden");
+      }
+
+      // Generate a realistic Hebrew Torah handwritten-style note on HTML5 Canvas for instant testing
+      function generateSampleHandwritingImage() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 760;
+        canvas.height = 460;
+        const ctx = canvas.getContext("2d");
+
+        // Warm lined notebook paper background
+        ctx.fillStyle = "#FDFBF2";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Subtle horizontal notebook lines
+        ctx.strokeStyle = "#DCE7F3";
+        ctx.lineWidth = 1.5;
+        for (let y = 78; y < 440; y += 44) {
+          ctx.beginPath();
+          ctx.moveTo(25, y);
+          ctx.lineTo(735, y);
+          ctx.stroke();
+        }
+
+        // Right margin red line (RTL Hebrew notebook)
+        ctx.strokeStyle = "rgba(220, 80, 80, 0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(695, 0);
+        ctx.lineTo(695, 460);
+        ctx.stroke();
+
+        // Pen ink text (slightly slanted cursive-like style)
+        ctx.fillStyle = "#1B365D";
+        ctx.direction = "rtl";
+        ctx.textAlign = "right";
+
+        ctx.font = 'italic 700 26px "Frank Ruhl Libre", serif';
+        ctx.fillText('בס"ד  •  חידושים במסכת בבא מציעא דף כ"א', 675, 58);
+
+        ctx.font = 'italic 500 22px "Frank Ruhl Libre", serif';
+        const lines = [
+          "בעניין ייאוש שלא מדעת במעות מפוזרות:",
+          'במשנה (ב"מ כא ע"א) תנן מצא מעות מפוזרות ה"ז שלו.',
+          "והקשו התוס' דהא קיי\"ל כאביי דייאוש שלא מדעת",
+          'לא הוי ייאוש, ותירץ ר"י דאדם עשוי למשמש בכיסו',
+          "בכל שעה, ולכן ודאי ידע והתייאש קודם שבאו לידו.",
+          'וכ"פ מרן בשו"ע חו"מ סי\' רס"ב ס"ג, עיי"ש ודו"ק.',
+          'עכ"ל מהרשום בשיעור מפי הרב שליט"א.',
+        ];
+
+        lines.forEach((line, idx) => {
+          const wobble = (idx % 2 === 0 ? -1 : 1) * 1.5;
+          ctx.fillText(line, 675 + wobble, 114 + idx * 44);
+        });
+
+        const dataUrl = canvas.toDataURL("image/png");
+        const base64 = dataUrl.split(",")[1];
+        setOcrPreview(base64, "image/png", "דף_חידושי_תורה_לדוגמה.png");
+        showToast(
+          'נוצרה תמונת כתב יד לדוגמה! לחץ על "פענח כתב יד עם AI"',
+          "success",
+        );
+      }
+
+      // --- REAL Gemini Vision Handwriting OCR ---
+      async function runRealHandwritingOcr() {
+        if (!state.ocrBase64) {
+          showToast(
+            'אנא העלה תמונת כתב יד או לחץ על "טען כתב יד לדוגמה"',
+            "error",
+          );
+          return;
+        }
+        if (state.pages < 1) {
+          showToast(
+            "יתרת דפי כתב היד הסתיימה. ניתן להוסיף חבילה במחירון הדמו!",
+            "error",
+          );
+          return;
+        }
+
+        const btn = document.getElementById("btn-run-ocr-ai");
+        btn.disabled = true;
+        btn.classList.add("opacity-60", "cursor-not-allowed");
+        showProgress(
+          true,
+          "מפענח כתב יד באמצעות Gemini Vision...",
+          "קורא את הכתב ומזהה מונחים תורניים...",
+          45,
+        );
+
+        try {
+          const expandAbbr = document.getElementById("opt-ocr-abbr").checked;
+          const fixTypos = document.getElementById("opt-ocr-typos").checked;
+          const rashiScript = document.getElementById("opt-ocr-rashi").checked;
+
+          const prompt = `אתה מומחה בפענוח כתבי יד בעברית, כתבי קודש, חידושי תורה ודפוסים ישנים (OCR תורני).
+אנא פענח במדויק את כל הטקסט המופיע בתמונה המצורפת.
+הנחיות:
+- ${expandAbbr ? 'פתח ראשי תיבות תורניים נפוצים בסוגריים או באופן שוטף (כגון ה"ז -> הרי זה, קיי"ל -> קיימא לן, וכ"פ -> וכן פסק, עכ"ל -> עד כאן לשונו).' : "שמור על ראשי התיבות כפי שנכתבו במקור."}
+- ${fixTypos ? "תקן שגיאות קולמוס קלות ופסק את המשפטים לקריאה נוחה." : "העתק במדויק מילה במילה."}
+- ${rashiScript ? 'שים לב לאותיות כתב רש"י או דפוס עתיק.' : ""}
+- החזר אך ורק את הטקסט המפוענח בעברית, ללא הקדמות או הערות משלך.`;
+
+          const payload = {
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: prompt },
+                  {
+                    inlineData: {
+                      mimeType: state.ocrMimeType,
+                      data: state.ocrBase64,
+                    },
+                  },
+                ],
+              },
+            ],
+          };
+
+          const extractedText = await callGeminiAPI(payload);
+          showProgress(true, "הפענוח הושלם!", "מעביר לעורך התורני...", 100);
+
+          if (state.pages < 9000) state.pages = Math.max(0, state.pages - 1);
+          const docTitle =
+            state.ocrFileName.replace(/\.[^/.]+$/, "") || "פענוח כתב יד";
+          setEditorContent(docTitle, extractedText);
+          addToHistory(docTitle, extractedText, "פענוח כתב יד");
+          persistState();
+          updateBalanceUI();
+
+          showToast("כתב היד פוענח בהצלחה!", "success");
+        } catch (err) {
+          showToast(`שגיאה בפענוח: ${err.message}`, "error");
+        } finally {
+          setTimeout(() => showProgress(false), 400);
+          btn.disabled = false;
+          btn.classList.remove("opacity-60", "cursor-not-allowed");
+        }
+      }
+
+      function showProgress(visible, title = "", step = "", pct = 0) {
+        const box = document.getElementById("ai-progress-box");
+        if (!visible) {
+          box.classList.add("hidden");
+          return;
+        }
+        box.classList.remove("hidden");
+        document.getElementById("ai-progress-title").textContent = title;
+        document.getElementById("ai-progress-step").textContent = step;
+        document.getElementById("ai-progress-bar").style.width = `${pct}%`;
+      }
+
+      // ==================== SMART TORAH EDITOR & AI POST-PROCESSING ====================
+      function setEditorContent(title, text) {
+        document.getElementById("editor-doc-title").value = title;
+        document.getElementById("torah-editor").innerText = text;
+        updateEditorStats();
+      }
+
+      function updateEditorStats() {
+        const text = document.getElementById("torah-editor").innerText.trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        const chars = text.length;
+        document.getElementById("editor-stats").textContent =
+          `${words} מילים • ${chars} תווים`;
+      }
+
+      function changeEditorFontSize(delta) {
+        state.editorFontSize = Math.max(
+          14,
+          Math.min(30, state.editorFontSize + delta),
+        );
+        document.getElementById("torah-editor").style.fontSize =
+          `${state.editorFontSize}px`;
+      }
+
+      function clearEditor() {
+        document.getElementById("torah-editor").innerText = "";
+        document.getElementById("editor-doc-title").value = "מסמך תורני חדש";
+        updateEditorStats();
+      }
+
+      // --- REAL Gemini API Post-Processing Transformations ---
+      async function runAiTextTransform(mode) {
+        const editor = document.getElementById("torah-editor");
+        const currentText = editor.innerText.trim();
+        if (!currentText) {
+          showToast(
+            "העורך ריק! תמלל שמע, פענח כתב יד או הדבק טקסט תחילה.",
+            "error",
+          );
+          return;
+        }
+
+        const prompts = {
+          sefer: {
+            label: "מעבד לסגנון ספר תורני בלשון הקודש...",
+            instruction:
+              "ערוך ושכתב את הטקסט הבא בסגנון תורני מלוטש, מכובד ובהיר המתאים להדפסה בספר חידושי תורה או קובץ תורני. חלק לכותרות משנה ברורות ושמור על כל התוכן והמקורות. החזר רק את הטקסט הערוך בעברית.",
+          },
+          alon: {
+            label: "מעבד למאמר קצר ומרתק לעלון שבת...",
+            instruction:
+              "עבד את הטקסט הבא למאמר קצר, קולח ומרתק המתאים לעלון שבת לציבור החרדי והדתי. הוסף כותרת מושכת, כותרות ביניים קצרות, ופסקת סיום עם מסר מעשי או מוסר השכל לשולחן שבת. החזר רק את המאמר הערוך.",
+          },
+          citations: {
+            label: 'מאתר ומצרף מראי מקומות (ש"ס, רמב"ם, שו"ע)...',
+            instruction:
+              'קרא את הטקסט התורני הבא, אתר כל פסוק, גמרא, רש"י, תוספות, רמב"ם או שולחן ערוך הנרמזים או מוזכרים בו, והטמע את מראי המקומות המדויקים בתוך הטקסט בסוגריים, ובסוף הוסף רשימה מסודרת תחת הכותרת "מראי מקומות:". החזר רק את הטקסט המעודכן.',
+          },
+          "expand-abbr": {
+            label: "פותח ראשי תיבות תורניים...",
+            instruction:
+              'פתח את כל ראשי התיבות בעברית ובשפה התורנית בטקסט הבא (כגון שו"ע, חו"מ, ב"מ, עכ"ל, זצ"ל, ודו"ק, קיי"ל, רש"י וכו\') למילים מלאות וברורות, תוך שמירה מדויקת על שאר הטקסט. החזר רק את הטקסט המתוקן.',
+          },
+          summary: {
+            label: "מסכם לנקודות מרכזיות...",
+            instruction:
+              "סכם את הטקסט הבא לנקודות מרכזיות, ברורות ומסודרות (•) כך שניתן יהיה לחזור על עיקרי השיעור או המאמר בדקה אחת. החזר רק את הסיכום בעברית.",
+          },
+        };
+
+        const cfg = prompts[mode];
+        if (!cfg) return;
+
+        const overlay = document.getElementById("editor-loading-overlay");
+        document.getElementById("editor-loading-msg").textContent = cfg.label;
+        overlay.classList.remove("hidden");
+
+        try {
+          const payload = {
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `${cfg.instruction}\n\nהטקסט לעיבוד:\n${currentText}`,
+                  },
+                ],
+              },
+            ],
+          };
+          const result = await callGeminiAPI(payload);
+          editor.innerText = result;
+          updateEditorStats();
+          showToast("הטקסט עובד בהצלחה באמצעות AI!", "success");
+        } catch (err) {
+          showToast(`שגיאה בעיבוד הטקסט: ${err.message}`, "error");
+        } finally {
+          overlay.classList.add("hidden");
+        }
+      }
+
+      // --- Export & Clipboard (Iframe-Safe execCommand) ---
+      function copyEditorText() {
+        const text = document.getElementById("torah-editor").innerText.trim();
+        if (!text) return showToast("אין טקסט להעתקה", "error");
+
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          showToast("הטקסט הועתק ללוח!", "success");
+        } catch (e) {
+          showToast("לא ניתן להעתיק בדפדפן זה", "error");
+        }
+        document.body.removeChild(ta);
+      }
+
+      function exportEditorToTxt() {
+        const title =
+          document.getElementById("editor-doc-title").value.trim() ||
+          "מסמך_תורני";
+        const text = document.getElementById("torah-editor").innerText.trim();
+        if (!text) return showToast("אין טקסט להורדה", "error");
+
+        const full = `${title}\n${"=".repeat(36)}\n\n${text}\n\n---\nהופק באמצעות קול הספר AI`;
+        const blob = new Blob(["\ufeff", full], {
+          type: "text/plain;charset=utf-8",
+        });
+        downloadBlob(blob, `${sanitizeFileName(title)}.txt`);
+        showToast("קובץ TXT ירד למחשב!", "success");
+      }
+
+      function exportEditorToWord() {
+        const title =
+          document.getElementById("editor-doc-title").value.trim() ||
+          "מסמך_תורני";
+        const text = document.getElementById("torah-editor").innerText.trim();
+        if (!text) return showToast("אין טקסט להורדה", "error");
+
+        const paragraphsHtml = text
+          .split(/\n+/)
+          .map((line) => `<p>${escapeHtml(line)}</p>`)
+          .join("");
+
+        const docHtml = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir='rtl' lang='he'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>${escapeHtml(title)}</title>
+                    <style>
+                        body { font-family: 'David', 'Frank Ruhl Libre', Arial, sans-serif; direction: rtl; text-align: right; line-height: 1.75; color: #111827; }
+                        h1 { color: #0B132B; border-bottom: 2px solid #C6922E; padding-bottom: 6px; font-size: 20pt; }
+                        p { font-size: 13pt; margin-bottom: 8pt; }
+                        .footer { font-size: 9pt; color: #64748B; margin-top: 24pt; border-top: 1px solid #E2E8F0; padding-top: 6pt; }
+                    </style>
+                </head>
+                <body>
+                    <h1>${escapeHtml(title)}</h1>
+                    ${paragraphsHtml}
+                    <div class="footer">הופק ונערך באמצעות קול הספר AI</div>
+                </body>
+                </html>
+            `;
+        const blob = new Blob(["\ufeff", docHtml], {
+          type: "application/msword;charset=utf-8",
+        });
+        downloadBlob(blob, `${sanitizeFileName(title)}.doc`);
+        showToast("קובץ Word (.doc) מיושר לימין ירד למחשב!", "success");
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function sanitizeFileName(name) {
+        return name.replace(/[^\u0590-\u05FFa-zA-Z0-9_-]/g, "_");
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      // ==================== HISTORY DRAWER ====================
+      function toggleHistoryDrawer() {
+        document.getElementById("history-drawer").classList.toggle("hidden");
+        renderHistoryDrawer();
+      }
+
+      function addToHistory(title, text, kind) {
+        state.history.unshift({
+          id: "h_" + Date.now(),
+          title,
+          text,
+          kind,
+          date: new Date().toLocaleDateString("he-IL", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        });
+        renderHistoryDrawer();
+      }
+
+      function saveCurrentToHistory() {
+        const text = document.getElementById("torah-editor").innerText.trim();
+        if (!text) return showToast("אין טקסט לשמירה", "error");
+        const title =
+          document.getElementById("editor-doc-title").value.trim() ||
+          "מסמך שמור";
+        addToHistory(title, text, "שמירה ידנית");
+        persistState();
+        showToast("המסמך נשמר בהיסטוריה שלך!", "success");
+      }
+
+      function renderHistoryDrawer() {
+        document.getElementById("history-badge").textContent =
+          state.history.length;
+        const list = document.getElementById("history-list");
+        if (!list) return;
+
+        if (state.history.length === 0) {
+          list.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 text-xs space-y-2">
+                        <i data-lucide="folder-open" class="w-8 h-8 mx-auto opacity-50"></i>
+                        <div>עדיין אין מסמכים שמורים בהיסטוריה.</div>
+                    </div>
+                `;
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+
+        list.innerHTML = state.history
+          .map(
+            (item) => `
+                <div onclick="loadHistoryRecord('${item.id}')" class="p-3.5 rounded-2xl border border-slate-200 hover:border-gold bg-alabaster hover:bg-white cursor-pointer transition relative group">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gold-soft text-gold-amber">${escapeHtml(item.kind)}</span>
+                        <span class="text-[11px] text-slate-400">${escapeHtml(item.date)}</span>
+                    </div>
+                    <div class="text-xs font-bold text-midnight line-clamp-1 pl-6">${escapeHtml(item.title)}</div>
+                    <div class="text-[11px] text-slate-500 line-clamp-2 mt-1">${escapeHtml(item.text.slice(0, 90))}...</div>
+                    <button onclick="deleteHistoryRecord(event, '${item.id}')" class="absolute bottom-3 left-3 p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="מחק">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `,
+          )
+          .join("");
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function loadHistoryRecord(id) {
+        const rec = state.history.find((h) => h.id === id);
+        if (!rec) return;
+        setEditorContent(rec.title, rec.text);
+        toggleHistoryDrawer();
+        switchView("studio");
+        showToast("המסמך נטען לעורך", "info");
+      }
+
+      function deleteHistoryRecord(ev, id) {
+        ev.stopPropagation();
+        state.history = state.history.filter((h) => h.id !== id);
+        persistState();
+        renderHistoryDrawer();
+      }
+
+      // ==================== KOSHER PHONE SIMULATOR ====================
+      function registerKosherPhone(ev) {
+        ev.preventDefault();
+        const phone = document
+          .getElementById("kosher-phone-input")
+          .value.trim();
+        const email = document
+          .getElementById("kosher-email-input")
+          .value.trim();
+        if (!phone || !email) return;
+
+        const pin = String(Math.floor(1000 + Math.random() * 9000));
+        state.kosherPhone = { phone, email, pin };
+        persistState();
+        renderKosherUI();
+        showToast(`המספר הכשר חובר! קוד ה-PIN שלך: ${pin}`, "success");
+      }
+
+      function disconnectKosherPhone() {
+        state.kosherPhone = null;
+        persistState();
+        renderKosherUI();
+        showToast("המספר הכשר נותק", "info");
+      }
+
+      function renderKosherUI() {
+        const form = document.getElementById("kosher-form");
+        const box = document.getElementById("kosher-linked-box");
+        if (state.kosherPhone) {
+          form.classList.add("hidden");
+          box.classList.remove("hidden");
+          document.getElementById("kosher-linked-phone").textContent =
+            state.kosherPhone.phone;
+          document.getElementById("kosher-linked-email").textContent =
+            state.kosherPhone.email;
+          document.getElementById("kosher-linked-pin").textContent =
+            state.kosherPhone.pin;
+        } else {
+          form.classList.remove("hidden");
+          box.classList.add("hidden");
+        }
+      }
+
+      function simulateIncomingKosherRecording() {
+        const title = `הקלטה מהקו הכשר (${state.kosherPhone.phone}) – הלכות שבת`;
+        const text = `שלום וברכה לכל הלומדים. נקודה קצרה בהלכות מוקצה בשבת: מרן בשולחן ערוך (אורח חיים סימן ש"ח סעיף א') מבאר שכלי שמלאכתו לאיסור מותר לטלטלו לצורך גופו או לצורך מקומו.\n\nלכן, אם נשאר חפץ שמלאכתו לאיסור על כיסא שצריכים לשבת עליו בשבת, מותר להזיזו למקום סמוך כדי לפנות את המקום לישיבה. שבת שלום ומבורך!`;
+
+        if (state.minutes >= 2) state.minutes -= 2;
+        setEditorContent(title, text);
+        addToHistory(title, text, "קו טלפון כשר");
+        persistState();
+        updateBalanceUI();
+
+        showToast(
+          `הקלטה מהקו הכשר תומללה ונשלחה ל-${state.kosherPhone.email}!`,
+          "success",
+        );
+        switchView("studio");
+      }
+
+      // ==================== PRICING & MOCK CHECKOUT ====================
+      function openCheckoutModal(name, minutes, pages, price) {
+        state.activePlan = { name, minutes, pages, price };
+        document.getElementById("modal-plan-title").textContent =
+          `חבילת ${name} • ₪${price}`;
+        document.getElementById("modal-pay-btn-label").textContent =
+          `אשר תשלום דמו (₪${price})`;
+        document
+          .getElementById("checkout-form-view")
+          .classList.remove("hidden");
+        document
+          .getElementById("checkout-receipt-view")
+          .classList.add("hidden");
+        switchPaymentTab("credit");
+
+        const modal = document.getElementById("checkout-modal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function closeCheckoutModal() {
+        const modal = document.getElementById("checkout-modal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      function switchPaymentTab(tab) {
+        document.querySelectorAll(".pay-tab").forEach((btn) => {
+          const active = btn.getAttribute("data-pay-tab") === tab;
+          btn.className = active
+            ? "pay-tab py-2 rounded-lg text-xs font-bold bg-white text-midnight shadow-sm transition"
+            : "pay-tab py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-midnight transition";
+        });
+        ["credit", "nedarim", "bank"].forEach((p) => {
+          document
+            .getElementById(`pay-panel-${p}`)
+            .classList.toggle("hidden", p !== tab);
+        });
+      }
+
+      function completeMockCheckout() {
+        if (!state.activePlan) return;
+        const { name, minutes, pages, price } = state.activePlan;
+
+        state.minutes += minutes;
+        state.pages = pages >= 9000 ? 9999 : state.pages + pages;
+        persistState();
+        updateBalanceUI();
+
+        const pagesLabel =
+          pages >= 9000 ? "כתבי יד ללא הגבלה" : `${pages} דפי כתב יד`;
+        document.getElementById("checkout-form-view").classList.add("hidden");
+        document
+          .getElementById("checkout-receipt-view")
+          .classList.remove("hidden");
+        document.getElementById("receipt-summary-text").textContent =
+          `חבילת "${name}" (₪${price} דמו) הופעלה! נוספו לחשבונך ${minutes.toLocaleString("he-IL")} דקות תמלול ו-${pagesLabel}.`;
+        document.getElementById("receipt-id").textContent =
+          `#KS-${Math.floor(100000 + Math.random() * 900000)}`;
+        document.getElementById("receipt-balance").textContent =
+          `${state.minutes.toLocaleString("he-IL")} דקות | ${state.pages >= 9000 ? "ללא הגבלה" : state.pages} דפי כתב יד`;
+
+        showToast(`היתרה עודכנה בהצלחה (+${minutes} דקות)!`, "success");
+      }
+    </script>
+  </body>
+</html>
